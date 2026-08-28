@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b0d12" />
+  <title>그냥서버 : 적자생존 실시간 UP 랭킹</title>
+  <meta name="description" content="그냥서버 : 적자생존 SOOP 댓글 실시간 UP 랭킹" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div>
+          <strong>그냥서버</strong>
+          <span>적자생존</span>
+        </div>
+      </div>
+
+      <nav class="side-nav" aria-label="메뉴">
+        <p class="nav-label">이벤트</p>
+        <a class="nav-item active" href="#ranking"><span>🏆</span> 실시간 UP 랭킹</a>
+        <a class="nav-item" href="#comments"><span>💬</span> 전체 댓글</a>
+
+        <p class="nav-label">빠른 접근</p>
+        <a id="sideSourceLink" class="nav-item" target="_blank" rel="noreferrer"><span>↗</span> 원본 게시글</a>
+      </nav>
+
+      <div class="side-bottom">
+        <button class="theme-btn" id="themeBtn" type="button"><span id="themeIcon">☾</span><span>테마 변경</span></button>
+        <p>SOOP 비공식 실시간 랭킹 뷰어</p>
+      </div>
+    </aside>
+
+    <div class="page">
+      <header class="mobile-header">
+        <button id="menuBtn" class="icon-btn" aria-label="메뉴 열기">☰</button>
+        <div class="mobile-brand">그냥서버 <b>적자생존</b></div>
+        <button id="mobileThemeBtn" class="icon-btn" aria-label="테마 변경">◐</button>
+      </header>
+
+      <main class="content">
+        <div class="breadcrumb">종료된 이벤트 <span>›</span> 그냥서버 : 적자생존</div>
+
+        <section class="hero" id="ranking">
+          <div class="hero-copy">
+            <div class="live-badge"><i></i> LIVE</div>
+            <h1>그냥서버 : 적자생존<br><em>실시간 UP 랭킹</em></h1>
+            <p>SOOP 게시글 댓글의 UP 수를 자동 집계하고 실시간으로 높은 순위를 보여줍니다.</p>
+          </div>
+          <div class="hero-actions">
+            <a id="sourceLink" class="button secondary" target="_blank" rel="noreferrer">원본 게시글 ↗</a>
+            <button id="refreshBtn" class="button primary" type="button">새로고침</button>
+          </div>
+        </section>
+
+        <section class="summary-grid" aria-label="실시간 현황">
+          <article class="summary-card">
+            <span>전체 댓글</span>
+            <strong id="totalCount">—</strong>
+            <small id="newCount">데이터 불러오는 중</small>
+          </article>
+          <article class="summary-card accent">
+            <span>현재 1위</span>
+            <strong><b id="topUp">—</b> <small class="unit">UP</small></strong>
+            <small id="topName">—</small>
+          </article>
+          <article class="summary-card cut-card">
+            <span>TOP 100 커트라인</span>
+            <strong><b id="cutUp">—</b> <small class="unit">UP</small></strong>
+            <small id="cutName">100위 계산 중</small>
+          </article>
+          <article class="summary-card">
+            <span>자동 갱신</span>
+            <strong><b id="intervalValue">5</b> <small class="unit">초</small></strong>
+            <small id="lastUpdated">대기 중</small>
+          </article>
+        </section>
+
+        <section class="panel ranking-panel" id="comments">
+          <div class="panel-head ranking-head">
+            <div>
+              <div class="section-kicker">LIVE LEADERBOARD</div>
+              <h2>전체 UP 랭킹</h2>
+              <div class="rank-legend"><span class="legend-cut">100위 아래 커트라인</span></div>
+            </div>
+            <div class="filters">
+              <label class="search-box">
+                <span>⌕</span>
+                <input id="searchInput" type="search" placeholder="닉네임 또는 댓글 검색" autocomplete="off" />
+              </label>
+              <select id="sortSelect" aria-label="정렬">
+                <option value="up">UP 높은순</option>
+                <option value="new">최신순</option>
+                <option value="old">오래된순</option>
+              </select>
+              <select id="intervalSelect" aria-label="갱신 주기">
+                <option value="3">3초</option>
+                <option value="5" selected>5초</option>
+                <option value="10">10초</option>
+                <option value="30">30초</option>
+              </select>
+              <div class="connection-state"><i></i><span id="apiState">연결 중</span><small id="scoreField">UP 데이터 확인 중</small></div>
+            </div>
+          </div>
+
+          <div id="errorBox" class="error-box hidden"></div>
+
+          <div class="table-wrap">
+            <div class="table-head row-grid">
+              <div>순위</div>
+              <div>작성자 / 댓글</div>
+              <div>UP</div>
+              <div></div>
+            </div>
+            <div id="commentList" class="rank-list">
+              <div class="loading-row"></div>
+              <div class="loading-row"></div>
+              <div class="loading-row"></div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <div><strong>그냥서버 : 적자생존</strong> 실시간 UP 랭킹</div>
+          <div>SOOP 비공식 팬메이드 도구 · 게시글 204274449</div>
+        </footer>
+      </main>
+    </div>
+  </div>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
