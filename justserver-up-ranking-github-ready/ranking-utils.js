@@ -102,6 +102,7 @@
     let dataReady = false;
     let filterActive = false;
     let scheduled = false;
+    let suppressFavoriteFilterReset = false;
 
     const style = doc.createElement('style');
     style.id = 'new-applicant-ui-style';
@@ -180,7 +181,11 @@
       filterActive = Boolean(next);
       if (filterActive) {
         const favoriteFilter = doc.getElementById('favoriteFilterBtn');
-        if (favoriteFilter?.getAttribute('aria-pressed') === 'true') favoriteFilter.click();
+        if (favoriteFilter?.getAttribute('aria-pressed') === 'true') {
+          suppressFavoriteFilterReset = true;
+          favoriteFilter.click();
+          suppressFavoriteFilterReset = false;
+        }
         const search = doc.getElementById('searchInput');
         if (search?.value) {
           search.value = '';
@@ -205,7 +210,7 @@
 
     const favoriteFilter = doc.getElementById('favoriteFilterBtn');
     favoriteFilter?.addEventListener('click', () => {
-      if (!filterActive) return;
+      if (suppressFavoriteFilterReset || !filterActive) return;
       filterActive = false;
       scheduleApply();
     });
