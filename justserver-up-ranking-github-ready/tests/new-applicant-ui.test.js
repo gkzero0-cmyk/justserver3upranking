@@ -22,4 +22,5 @@ test('ranking utility wires New labels and clickable new-applicant filtering', (
   assert.match(source, /data-favorite-key/);
   assert.match(source, /MutationObserver/);
   assert.match(source, /addEventListener\('click'/);
+  assert.match(source, /suppressFavoriteFilterReset/);
 });
