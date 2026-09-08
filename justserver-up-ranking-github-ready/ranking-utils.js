@@ -7,6 +7,7 @@
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const DEFAULT_RANK_CHANGE_TTL_MS = 24 * 60 * 60 * 1000;
 
   function favoriteKey(item) {
     const commentNo = String(item?.commentNo || '').trim();
@@ -35,6 +36,83 @@
       to: current,
       delta: Math.abs(previous - current)
     };
+  }
+
+  function serializeMap(map) {
+    if (!(map instanceof Map)) return '[]';
+    return JSON.stringify([...map.entries()]);
+  }
+
+  function readRankMap(raw) {
+    const map = new Map();
+    if (!raw) return map;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return map;
+      for (const entry of parsed) {
+        if (!Array.isArray(entry) || entry.length < 2) continue;
+        const key = String(entry[0] || '').trim();
+        const rank = Number(entry[1]);
+        if (key && Number.isFinite(rank) && rank > 0) map.set(key, rank);
+      }
+    } catch {}
+    return map;
+  }
+
+  function normalizeRankChange(value, nowMs, ttlMs) {
+    if (!value || typeof value !== 'object') return null;
+    const direction = value.direction === 'up' || value.direction === 'down' ? value.direction : '';
+    const from = Number(value.from);
+    const to = Number(value.to);
+    const changedAt = Number(value.changedAt);
+    if (!direction || !Number.isFinite(from) || from <= 0 || !Number.isFinite(to) || to <= 0 || from === to) return null;
+    if (!Number.isFinite(changedAt) || changedAt > nowMs || nowMs - changedAt >= ttlMs) return null;
+    return {
+      direction,
+      from,
+      to,
+      delta: Math.abs(from - to),
+      changedAt
+    };
+  }
+
+  function readRankChangeHistory(raw, nowMs = Date.now(), ttlMs = DEFAULT_RANK_CHANGE_TTL_MS) {
+    const map = new Map();
+    const now = Number.isFinite(Number(nowMs)) ? Number(nowMs) : Date.now();
+    const ttl = Number.isFinite(Number(ttlMs)) && Number(ttlMs) > 0 ? Number(ttlMs) : DEFAULT_RANK_CHANGE_TTL_MS;
+    if (!raw) return map;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return map;
+      for (const entry of parsed) {
+        if (!Array.isArray(entry) || entry.length < 2) continue;
+        const key = String(entry[0] || '').trim();
+        const change = normalizeRankChange(entry[1], now, ttl);
+        if (key && change) map.set(key, change);
+      }
+    } catch {}
+    return map;
+  }
+
+  function updateRankChangeHistory(ranked, previousRanks, existingHistory, nowMs = Date.now(), ttlMs = DEFAULT_RANK_CHANGE_TTL_MS) {
+    const now = Number.isFinite(Number(nowMs)) ? Number(nowMs) : Date.now();
+    const ttl = Number.isFinite(Number(ttlMs)) && Number(ttlMs) > 0 ? Number(ttlMs) : DEFAULT_RANK_CHANGE_TTL_MS;
+    const previous = previousRanks instanceof Map ? previousRanks : new Map();
+    const history = new Map();
+
+    if (existingHistory instanceof Map) {
+      for (const [key, value] of existingHistory.entries()) {
+        const normalized = normalizeRankChange(value, now, ttl);
+        if (normalized) history.set(String(key), normalized);
+      }
+    }
+
+    for (const item of ranked || []) {
+      const key = favoriteKey(item);
+      const change = getRankChange(item?.rank, previous.get(key));
+      if (change) history.set(key, { ...change, changedAt: now });
+    }
+    return history;
   }
 
   function parseKstDate(value) {
@@ -247,6 +325,10 @@
     favoriteKey,
     buildRankMap,
     getRankChange,
+    serializeMap,
+    readRankMap,
+    readRankChangeHistory,
+    updateRankChangeHistory,
     parseKstDate,
     countKstToday,
     getKstTodayKeys,
