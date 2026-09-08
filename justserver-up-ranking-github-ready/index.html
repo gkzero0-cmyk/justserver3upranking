@@ -46,7 +46,7 @@
     tr[data-rank="1"] .rank-badge{color:#15100a;background:#ffd66b} tr[data-rank="2"] .rank-badge{color:#11151b;background:#cad5e4} tr[data-rank="3"] .rank-badge{color:#1c100b;background:#d89462}
     .rank-change{font-size:10px;font-weight:900;line-height:1;white-space:nowrap}.rank-change.up{color:#71e6ae}.rank-change.down{color:#ff8c9d}.rank-change .from-to{color:#aab5c7;margin-right:4px}
     .userbox{display:flex;align-items:center;min-width:0}.avatar-link{width:38px;height:38px;border-radius:50%;margin-right:11px;flex:0 0 auto;display:grid;place-items:center;background:#222b3b;overflow:hidden;border:1px solid #303b50;transition:.15s transform,.15s border-color}.avatar-link:hover{transform:scale(1.06);border-color:#748fff}.avatar{width:100%;height:100%;object-fit:cover}.avatar-fallback{font-size:12px;font-weight:900;color:#b8c7e8}.names{min-width:0;flex:1}.name-row{display:flex;align-items:center;gap:7px;min-width:0}.nick{display:block;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.id{margin-top:3px;color:#687489;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.favorite-btn{width:28px;height:28px;border-radius:8px;border:1px solid #303b50;background:#151c29;color:#738098;cursor:pointer;display:grid;place-items:center;font-size:16px;line-height:1;flex:0 0 auto}.favorite-btn:hover{border-color:#7b6a36;color:#ffe48a;background:#2a2414}.favorite-btn.active{border-color:#7b6a36;color:#ffd96b;background:#2a2414}
-    .comment{color:#d8deea;font-size:13px;line-height:1.55;word-break:break-word;white-space:pre-wrap}.comment-link{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 10px;border:1px solid #33405a;border-radius:9px;background:#151c29;color:#cbd6ec;font-size:11px;font-weight:850;white-space:nowrap;transition:.15s}.comment-link:hover{background:#202b40;border-color:#637fb8;color:#fff}.upnum{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;color:#91a9ff;font-size:15px;font-weight:950}.upnum:before{content:"▲";font-size:10px}.time{font-size:12px;color:#717e92;white-space:nowrap}
+    .comment{color:#d8deea;font-size:13px;min-width:0}.comment-wrap{display:flex;align-items:flex-start;gap:8px;min-width:0}.comment-text{min-width:0;flex:1;line-height:1.55;word-break:break-word}.comment-text.collapsed{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.comment-text.expanded{white-space:pre-wrap;overflow:visible}.comment-toggle{flex:0 0 auto;border:0;background:transparent;color:#91a9ff;font-size:11px;font-weight:850;cursor:pointer;padding:2px 0;white-space:nowrap}.comment-toggle:hover{color:#c3d0ff;text-decoration:underline}.comment-link{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 10px;border:1px solid #33405a;border-radius:9px;background:#151c29;color:#cbd6ec;font-size:11px;font-weight:850;white-space:nowrap;transition:.15s}.comment-link:hover{background:#202b40;border-color:#637fb8;color:#fff}.upnum{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;color:#91a9ff;font-size:15px;font-weight:950}.upnum:before{content:"▲";font-size:10px}.time{font-size:12px;color:#717e92;white-space:nowrap}
     .cut-row td{padding:0;border:0!important;background:transparent!important}.cutline{display:flex;align-items:center;gap:12px;padding:5px 16px;color:#ff8798;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}.cutline:before,.cutline:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,#e4536a)}.cutline:after{background:linear-gradient(90deg,#e4536a,transparent)}
     .empty{padding:70px 20px;text-align:center;color:#7e8a9e}.skeleton{height:64px;background:linear-gradient(90deg,#101520 25%,#151c29 37%,#101520 63%);background-size:400% 100%;animation:shimmer 1.4s infinite;border-top:1px solid rgba(35,43,59,.7)}@keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
     .notice{display:none;margin:12px 0;padding:12px 14px;border:1px solid #5d3540;background:#27151a;color:#ffb8c4;border-radius:11px;font-size:13px;line-height:1.5}.notice.show{display:block}
@@ -100,10 +100,14 @@
 <script>
 (() => {
   const REFRESH_MS = 1000;
+  const RANK_CHANGE_TTL_MS = 24 * 60 * 60 * 1000;
   const FAVORITES_KEY = 'justserver-up-ranking:favorites:v1';
+  const RANK_SNAPSHOT_KEY = 'justserver-up-ranking:rank-snapshot:v1';
+  const RANK_HISTORY_KEY = 'justserver-up-ranking:rank-history:v1';
   const {
     favoriteKey, buildRankMap, getRankChange, parseKstDate,
-    countKstToday, readFavoriteIds, toggleFavoriteId
+    countKstToday, readFavoriteIds, toggleFavoriteId,
+    serializeMap, readRankMap, readRankChangeHistory, updateRankChangeHistory
   } = window.RankingUtils;
   const els = {
     tbody: document.getElementById('tbody'), total: document.getElementById('totalCount'),
@@ -119,9 +123,10 @@
   let sortMode = 'up';
   let favoritesOnly = false;
   let favoriteIds = readFavoriteIds(localStorage.getItem(FAVORITES_KEY));
-  let previousRanks = new Map();
-  let rankChanges = new Map();
-  let hasRankBaseline = false;
+  let previousRanks = readRankMap(localStorage.getItem(RANK_SNAPSHOT_KEY));
+  let rankChanges = readRankChangeHistory(localStorage.getItem(RANK_HISTORY_KEY), Date.now(), RANK_CHANGE_TTL_MS);
+  let hasRankBaseline = previousRanks.size > 0;
+  let expandedCommentKeys = new Set();
   const fmt = new Intl.NumberFormat('ko-KR');
   const esc = s => String(s ?? '').replace(/[&<>'"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
   const station = id => `https://www.sooplive.com/station/${encodeURIComponent(id)}`;
@@ -154,9 +159,15 @@
   };
   const favoriteSet = () => new Set(favoriteIds);
   const saveFavorites = () => localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds));
+  const saveRankState = () => {
+    try {
+      localStorage.setItem(RANK_SNAPSHOT_KEY, serializeMap(previousRanks));
+      localStorage.setItem(RANK_HISTORY_KEY, serializeMap(rankChanges));
+    } catch {}
+  };
   const rankChangeHtml = item => {
     const change = rankChanges.get(favoriteKey(item));
-    if (!change) return '';
+    if (!change || Date.now() - Number(change.changedAt) >= RANK_CHANGE_TTL_MS) return '';
     const arrow = change.direction === 'up' ? '▲' : '▼';
     return `<span class="rank-change ${change.direction}"><span class="from-to">${change.from}→${change.to}</span>${arrow}${change.delta}</span>`;
   };
@@ -194,8 +205,12 @@
       const commentUrl = x.commentUrl || `https://www.sooplive.com/station/chunbongtv/post/204274449${x.commentNo ? `#comment_noti${encodeURIComponent(x.commentNo)}` : ''}`;
       const key = favoriteKey(x);
       const favorite = favorites.has(key);
+      const expanded = expandedCommentKeys.has(key);
+      const commentClass = expanded ? 'comment-text expanded' : 'comment-text collapsed';
+      const commentToggleLabel = expanded ? '접기' : '더보기';
       const favoriteButton = `<button class="favorite-btn${favorite ? ' active' : ''}" type="button" data-favorite-key="${esc(key)}" title="${favorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}" aria-label="${favorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}" aria-pressed="${favorite ? 'true' : 'false'}">${favorite ? '★' : '☆'}</button>`;
-      html += `<tr data-rank="${x.rank}"><td class="rank"><div class="rank-stack"><span class="rank-badge">${x.rank}</span>${rankChangeHtml(x)}</div></td><td class="user"><div class="userbox">${avatar}<div class="names"><div class="name-row"><span class="nick">${esc(x.userNick)}</span>${favoriteButton}</div><div class="id">${esc(x.userId || '-')}</div></div></div></td><td class="comment">${esc(x.comment || '-')}</td><td class="up"><span class="upnum">${fmt.format(x.up||0)}</span></td><td class="time">${esc(prettyDate(x.regDate))}</td><td class="link"><a class="comment-link" href="${esc(commentUrl)}" target="_blank" rel="noopener noreferrer">신청 댓글 보기 ↗</a></td></tr>`;
+      const commentContent = `<div class="comment-wrap"><div class="${commentClass}">${esc(x.comment || '-')}</div><button class="comment-toggle" type="button" data-comment-key="${esc(key)}" aria-expanded="${expanded ? 'true' : 'false'}">${commentToggleLabel}</button></div>`;
+      html += `<tr data-rank="${x.rank}"><td class="rank"><div class="rank-stack"><span class="rank-badge">${x.rank}</span>${rankChangeHtml(x)}</div></td><td class="user"><div class="userbox">${avatar}<div class="names"><div class="name-row"><span class="nick">${esc(x.userNick)}</span>${favoriteButton}</div><div class="id">${esc(x.userId || '-')}</div></div></div></td><td class="comment">${commentContent}</td><td class="up"><span class="upnum">${fmt.format(x.up||0)}</span></td><td class="time">${esc(prettyDate(x.regDate))}</td><td class="link"><a class="comment-link" href="${esc(commentUrl)}" target="_blank" rel="noopener noreferrer">신청 댓글 보기 ↗</a></td></tr>`;
     }
     els.tbody.innerHTML = html;
   }
@@ -203,17 +218,15 @@
   function updateRankHistory(nextAll){
     const ranked = sortRank(nextAll).map((x,i)=>({...x,rank:i+1}));
     const nextRanks = buildRankMap(ranked);
-    const nextChanges = new Map();
+    const now = Date.now();
     if (hasRankBaseline) {
-      for (const item of ranked) {
-        const key = favoriteKey(item);
-        const change = getRankChange(item.rank, previousRanks.get(key));
-        if (change) nextChanges.set(key, change);
-      }
+      rankChanges = updateRankChangeHistory(ranked, previousRanks, rankChanges, now, RANK_CHANGE_TTL_MS);
+    } else {
+      rankChanges = readRankChangeHistory(serializeMap(rankChanges), now, RANK_CHANGE_TTL_MS);
     }
     previousRanks = nextRanks;
-    rankChanges = nextChanges;
     hasRankBaseline = true;
+    saveRankState();
   }
 
   async function load(manual=false){
@@ -258,6 +271,13 @@
     render();
   });
   els.tbody.addEventListener('click', event => {
+    const commentBtn = event.target.closest('.comment-toggle');
+    if (commentBtn) {
+      const key = commentBtn.dataset.commentKey || '';
+      if (expandedCommentKeys.has(key)) expandedCommentKeys.delete(key); else expandedCommentKeys.add(key);
+      render();
+      return;
+    }
     const btn = event.target.closest('.favorite-btn');
     if (!btn) return;
     favoriteIds = toggleFavoriteId(favoriteIds, btn.dataset.favoriteKey || '');
