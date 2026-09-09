@@ -3,7 +3,10 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) {
     root.RankingUtils = api;
-    if (root.document) api.installNewApplicantUi(root);
+    if (root.document) {
+      api.installServerScheduleUi(root);
+      api.installNewApplicantUi(root);
+    }
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -171,6 +174,63 @@
     return [...set];
   }
 
+  function serverScheduleMarkup() {
+    return `<aside class="hero-schedule" aria-label="서버 일정">
+      <div class="schedule-title">SERVER SCHEDULE</div>
+      <div class="schedule-item"><span>접수마감</span><strong>2026년 9월 20일</strong></div>
+      <div class="schedule-item"><span>입주발표</span><strong>2026년 9월 22일</strong></div>
+      <div class="schedule-item"><span>서버기간</span><strong>2026. 9. 30 ~ 2026. 10. 21</strong></div>
+    </aside>`;
+  }
+
+  function serverScheduleCss() {
+    return `
+      .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+      .hero-main{flex:1;min-width:0}
+      .hero-schedule{width:320px;flex:0 0 320px;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:rgba(16,20,30,.92);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+      .schedule-title{font-size:12px;font-weight:900;color:#b9c5ff;margin-bottom:10px;letter-spacing:.08em}
+      .schedule-item{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+      .schedule-item:first-of-type{border-top:0;padding-top:0}
+      .schedule-item span{font-size:11px;color:#8d98aa;font-weight:800;white-space:nowrap}
+      .schedule-item strong{font-size:13px;color:#f4f7fb;font-weight:900;line-height:1.4;white-space:nowrap}
+      @media(max-width:980px){
+        .hero-top{flex-direction:column}
+        .hero-schedule{width:100%;flex:1 1 auto}
+      }
+    `;
+  }
+
+  function installServerScheduleUi(root) {
+    const doc = root?.document;
+    if (!doc || root.__justserverScheduleUiInstalled) return;
+    const hero = doc.querySelector('.hero');
+    const actions = hero?.querySelector('.hero-actions');
+    if (!hero || !actions) return;
+
+    root.__justserverScheduleUiInstalled = true;
+
+    const style = doc.createElement('style');
+    style.id = 'server-schedule-ui-style';
+    style.textContent = serverScheduleCss();
+    (doc.head || doc.documentElement).appendChild(style);
+
+    const top = doc.createElement('div');
+    top.className = 'hero-top';
+    const main = doc.createElement('div');
+    main.className = 'hero-main';
+
+    for (const child of [...hero.children]) {
+      if (child === actions) break;
+      main.appendChild(child);
+    }
+
+    top.appendChild(main);
+    const scheduleHost = doc.createElement('div');
+    scheduleHost.innerHTML = serverScheduleMarkup().trim();
+    if (scheduleHost.firstElementChild) top.appendChild(scheduleHost.firstElementChild);
+    hero.insertBefore(top, actions);
+  }
+
   function installNewApplicantUi(root) {
     const doc = root?.document;
     if (!doc || root.__justserverNewApplicantUiInstalled) return;
@@ -334,6 +394,9 @@
     getKstTodayKeys,
     readFavoriteIds,
     toggleFavoriteId,
+    serverScheduleMarkup,
+    serverScheduleCss,
+    installServerScheduleUi,
     installNewApplicantUi
   };
 });
