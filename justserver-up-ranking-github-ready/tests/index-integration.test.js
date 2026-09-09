@@ -27,3 +27,24 @@ test('index renders rank movement using the ranking utility module', () => {
   assert.match(html, /getRankChange/);
   assert.match(html, /rank-change/);
 });
+
+test('index opens applicant details on demand from name or comment clicks', () => {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  assert.match(html, /id="applicantDetailModal"/);
+  assert.match(html, /aria-modal="true"/);
+  assert.match(html, /detail-trigger/);
+  assert.match(html, /\/api\/applicant-detail\?commentNo=/);
+  assert.match(html, /상세 정보를 불러오는 중/);
+  assert.match(html, /data-detail-close/);
+  assert.match(html, /event\.key === 'Escape'/);
+});
+
+test('favorite and comment-toggle actions are handled before detail triggers', () => {
+  const html = fs.readFileSync(indexPath, 'utf8');
+  const toggle = html.indexOf("event.target.closest('.comment-toggle')");
+  const favorite = html.indexOf("event.target.closest('.favorite-btn')");
+  const detail = html.indexOf("event.target.closest('.detail-trigger')");
+  assert.ok(toggle >= 0);
+  assert.ok(favorite > toggle);
+  assert.ok(detail > favorite);
+});
