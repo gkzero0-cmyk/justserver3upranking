@@ -25,11 +25,15 @@ test('server schedule CSS places the card on the right and stacks it on smaller 
   assert.match(css, /@media\(max-width:980px\)[\s\S]*\.hero-schedule\s*\{[^}]*width:100%/);
 });
 
-test('ranking utility installs the server schedule into the existing hero', () => {
+test('ranking utility installs the server schedule and deadline badge into the existing hero', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
   assert.match(source, /installServerScheduleUi/);
   assert.match(source, /querySelector\('\.hero'\)/);
   assert.match(source, /querySelector\('\.hero-actions'\)/);
   assert.match(source, /className = 'hero-top'/);
   assert.match(source, /className = 'hero-main'/);
+  assert.match(source, /className = 'hero-title-row'/);
+  assert.match(source, /deadlineBadge/);
+  assert.match(source, /APPLICATION_DEADLINE_YMD = '2026-09-20'/);
+  assert.match(source, /getKstDdayLabel\(APPLICATION_DEADLINE_YMD, Date\.now\(\)\)/);
 });
