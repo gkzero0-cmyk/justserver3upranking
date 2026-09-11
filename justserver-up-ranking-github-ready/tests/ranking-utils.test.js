@@ -6,7 +6,8 @@ const {
   countKstToday,
   readFavoriteIds,
   toggleFavoriteId,
-  favoriteKey
+  favoriteKey,
+  getKstDdayLabel
 } = require('../ranking-utils');
 
 test('buildRankMap stores rank by stable comment number', () => {
@@ -35,6 +36,13 @@ test('countKstToday uses the Korea calendar day boundary', () => {
     { regDate: '2026-09-07T16:00:00Z' }
   ];
   assert.equal(countKstToday(comments, now), 3);
+});
+
+test('getKstDdayLabel counts calendar days to the application deadline in Korea time', () => {
+  assert.equal(typeof getKstDdayLabel, 'function');
+  assert.equal(getKstDdayLabel('2026-09-20', Date.parse('2026-09-11T07:00:00+09:00')), 'D-9');
+  assert.equal(getKstDdayLabel('2026-09-20', Date.parse('2026-09-20T23:59:59+09:00')), 'D-DAY');
+  assert.equal(getKstDdayLabel('2026-09-20', Date.parse('2026-09-21T00:00:00+09:00')), 'D+1');
 });
 
 test('favorite helpers persist a clean unique set and survive malformed storage', () => {
