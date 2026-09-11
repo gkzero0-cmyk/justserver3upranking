@@ -20,6 +20,13 @@ test('applicant detail endpoint is on-demand and returns the required detail fie
   assert.match(source, /stationUrl/);
 });
 
+test('applicant detail endpoint keeps the full station payload so nested fan count and profile image can be normalized', () => {
+  const source = fs.readFileSync(apiPath, 'utf8');
+  assert.match(source, /formatApplicationDetail\(raw,\s*station\)/);
+  assert.doesNotMatch(source, /const\s+currentFanCount\s*=\s*station\?\.fan_cnt/);
+  assert.doesNotMatch(source, /stationForDetail/);
+});
+
 test('applicant detail endpoint validates identifiers and caches click lookups', () => {
   assert.equal(fs.existsSync(apiPath), true, 'api/applicant-detail.js must exist');
   const source = fs.readFileSync(apiPath, 'utf8');
