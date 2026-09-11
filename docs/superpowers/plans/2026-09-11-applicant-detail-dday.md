@@ -4,7 +4,7 @@
 
 **Goal:** 신청자 상세 정보 파싱/표시 오류를 고치고 원문·프로필을 추가하며 메인 제목에 2026-09-20 기준 KST D-day를 표시한다.
 
-**Architecture:** 신청 댓글 해석은 `applicant-detail-utils.js`의 순수 함수에서 처리하고 API는 SOOP 방송국 응답의 중첩 필드와 원문을 정규화해 반환한다. `index.html`은 API가 반환한 구조화 데이터만 렌더링하고 D-day 계산은 재사용 가능한 `ranking-utils.js` 헬퍼로 처리한다.
+**Architecture:** 신청 댓글 해석은 `applicant-detail-utils.js`의 순수 함수에서 처리하고 API는 SOOP 방송국 전체 응답을 전달해 중첩 `station.upd.fan_cnt`, `profile_image`, 댓글 원문을 정규화한다. 기존 `index.html`의 상세 렌더 구조는 유지하고, 이미 로드되는 `ranking-utils.js`가 상세 API 응답을 관찰해 이름 왼쪽 프로필과 원문 토글을 보강한다. D-day도 같은 유틸에서 KST 달력 기준으로 계산해 기존 제목 옆에 삽입한다.
 
 **Tech Stack:** Node.js CommonJS/브라우저 UMD 유틸, Vercel Serverless API, vanilla HTML/CSS/JavaScript, `node:test`.
 
@@ -16,6 +16,7 @@
 - 기존 1초 자동 갱신, 랭킹, 즐겨찾기, 신규 신청자, 댓글 더보기 동작을 유지한다.
 - SOOP 방송국 현재 즐겨찾기 수는 `station.upd.fan_cnt`를 우선한다.
 - 신청 첨부 사진과 방송국 프로필 사진은 서로 다른 필드로 유지한다.
+- 방송국 프로필 사진은 상세 상단 신청자 이름 바로 왼쪽에만 표시한다.
 
 ---
 
@@ -31,74 +32,59 @@
 - Consumes: SOOP 댓글 객체와 방송국 API JSON.
 - Produces: `formatApplicationDetail(rawComment, station)` 결과의 `name`, `fanCount`, `message`, `moveInFee`, `originalComment`, `photoUrl`, `profileImageUrl`.
 
-- [ ] **Step 1: Write the failing tests**
-  - 이모지 기반 4단 신청서가 이름/수치/메시지/입주비로 분리되는 테스트를 추가한다.
-  - `즐겨찾기수` 라벨을 인식하는 테스트를 추가한다.
-  - `station.upd.fan_cnt`와 `profile_image`를 사용하는 테스트를 추가한다.
-  - 원문 문자열이 `originalComment`로 유지되는 테스트를 추가한다.
-- [ ] **Step 2: Run tests to verify they fail**
-  - Run: `node --test tests/applicant-detail-utils.test.js tests/applicant-detail-api.test.js`
-  - Expected: 새 이모지/중첩 fan/profile/original 요구 assertion이 실패한다.
-- [ ] **Step 3: Write minimal implementation**
-  - 장식 접두사를 무시해 라벨을 찾고 라벨 없는 줄 단위 신청서의 이름/팬수/마지막 입주비를 추론한다.
-  - `formatApplicationDetail`에서 `station.upd.fan_cnt`, `station.profile_image`와 원문을 반환한다.
-  - API payload에 `originalComment`, `profileImageUrl`을 포함한다.
-- [ ] **Step 4: Run tests to verify they pass**
-  - Run: `node --test tests/applicant-detail-utils.test.js tests/applicant-detail-api.test.js`
-  - Expected: PASS.
-- [ ] **Step 5: Commit**
-  - Commit message: `fix: normalize applicant detail data`
+- [x] **Step 1: Write the failing tests**
+  - 이모지 기반 4단 신청서, 라벨 변형, 중첩 fan/profile, 원문 보존 테스트를 추가한다.
+- [x] **Step 2: Run tests to verify they fail**
+  - 기존 파서는 이모지 4단 신청서와 중첩 `fan_cnt`를 처리하지 못하는 실패를 확인한다.
+- [x] **Step 3: Write minimal implementation**
+  - 장식 접두사를 무시하고 라벨/불릿 신청서를 분리한다.
+  - `station.upd.fan_cnt`, `profile_image`, `originalComment`를 정규화한다.
+  - API는 전체 station payload를 helper에 전달한다.
+- [x] **Step 4: Run tests to verify they pass**
+  - applicant detail 관련 11개 테스트 PASS.
 
 ### Task 2: 상세 모달 원문·프로필 UI
 
 **Files:**
-- Modify: `justserver-up-ranking-github-ready/tests/index-integration.test.js`
-- Modify: `justserver-up-ranking-github-ready/index.html`
+- Create: `justserver-up-ranking-github-ready/tests/applicant-detail-enhancement-ui.test.js`
+- Modify: `justserver-up-ranking-github-ready/ranking-utils.js`
 
 **Interfaces:**
-- Consumes: `/api/applicant-detail`의 `profileImageUrl`, `originalComment`, 구조화 상세 필드.
-- Produces: 제목 옆 프로필 아바타와 모달 내부 `신청 댓글 원문 보기` 토글.
+- Consumes: `/api/applicant-detail`의 `profileImageUrl`, `originalComment`.
+- Produces: 상세 상단 이름 바로 왼쪽 원형 프로필과 `신청 댓글 원문 보기/접기` 토글.
 
-- [ ] **Step 1: Write the failing test**
-  - 상세 모달 렌더 코드에 `profileImageUrl`, `신청 댓글 원문 보기`, 원문 토글 data attribute가 존재하는지 검증한다.
-- [ ] **Step 2: Run test to verify it fails**
-  - Run: `node --test tests/index-integration.test.js`
-  - Expected: 새 UI 문자열/필드 assertion이 실패한다.
-- [ ] **Step 3: Write minimal implementation**
-  - `.detail-head` 안에 프로필 이미지를 배치한다.
-  - 원문 버튼과 숨김 원문 박스를 추가하고 이벤트 위임으로 펼침/접힘을 구현한다.
-  - 기존 댓글 첨부 이미지는 오른쪽 패널에 유지한다.
-- [ ] **Step 4: Run test to verify it passes**
-  - Run: `node --test tests/index-integration.test.js`
-  - Expected: PASS.
-- [ ] **Step 5: Commit**
-  - Commit message: `feat: show applicant profile and original comment`
+- [x] **Step 1: Write the failing test**
+  - `installApplicantDetailEnhancements`, `profileImageUrl`, 원문 토글 마커를 요구한다.
+- [x] **Step 2: Run test to verify it fails**
+  - 기존 ranking utility에는 상세 보강 함수가 없어 실패함을 확인한다.
+- [x] **Step 3: Write minimal implementation**
+  - 상세 API fetch 응답을 관찰하고 `.detail-head`의 이름 왼쪽에 원형 프로필을 삽입한다.
+  - 첫 번째 상세 정보 패널에 원문 보기/접기 토글을 삽입한다.
+  - 기존 `.detail-photo-wrap` 및 오른쪽 댓글 첨부 이미지 렌더는 건드리지 않는다.
+- [x] **Step 4: Run test to verify it passes**
+  - 상세 UI 보강 테스트 PASS.
 
 ### Task 3: 접수 마감 D-day
 
 **Files:**
 - Modify: `justserver-up-ranking-github-ready/tests/ranking-utils.test.js`
+- Modify: `justserver-up-ranking-github-ready/tests/server-schedule-card.test.js`
 - Modify: `justserver-up-ranking-github-ready/ranking-utils.js`
-- Modify: `justserver-up-ranking-github-ready/tests/index-integration.test.js`
-- Modify: `justserver-up-ranking-github-ready/index.html`
 
 **Interfaces:**
 - Produces: `getKstDdayLabel(targetYmd, nowMs)` → `D-N`, `D-DAY`, `D+N`.
 
-- [ ] **Step 1: Write the failing tests**
-  - `2026-09-11` KST에서 `2026-09-20`이 `D-9`, 당일이 `D-DAY`, 다음 날이 `D+1`인지 검증한다.
-  - 제목 옆 `deadlineBadge`와 `2026-09-20` 상수가 존재하는지 검증한다.
-- [ ] **Step 2: Run tests to verify they fail**
-  - Run: `node --test tests/ranking-utils.test.js tests/index-integration.test.js`
-  - Expected: D-day 헬퍼/배지 assertion이 실패한다.
-- [ ] **Step 3: Write minimal implementation**
-  - KST 날짜를 정수 day key로 바꾸어 차이를 계산하는 헬퍼를 추가한다.
-  - `<h1>`을 제목+배지 flex wrapper로 바꾸고 초기 렌더 및 날짜 변경 시 배지를 갱신한다.
-- [ ] **Step 4: Run test to verify it passes**
-  - Run: `node --test tests/ranking-utils.test.js tests/index-integration.test.js`
-  - Expected: PASS.
-- [ ] **Step 5: Commit**
-  - Commit message: `feat: add application deadline countdown`
+- [x] **Step 1: Write the failing tests**
+  - `2026-09-11` KST에서 `2026-09-20`이 `D-9`, 당일 `D-DAY`, 다음 날 `D+1`인지 검증한다.
+  - 제목 옆 `deadlineBadge`와 `2026-09-20` 상수를 검증한다.
+- [x] **Step 2: Run tests to verify they fail**
+  - 기존 utility에 D-day helper와 badge가 없어 실패함을 확인한다.
+- [x] **Step 3: Write minimal implementation**
+  - KST 달력 날짜 차이 헬퍼를 추가한다.
+  - 기존 제목을 `hero-title-row`로 감싸고 `deadlineBadge`를 옆에 삽입한다.
+  - 1분 간격으로 날짜 경계를 재확인한다.
+- [x] **Step 4: Run test to verify it passes**
+  - D-day helper 및 schedule/badge 테스트 PASS.
 
 ### Task 4: 회귀 검증 및 배포 준비
 
@@ -109,13 +95,9 @@
 - Consumes: Tasks 1–3의 최종 브랜치.
 - Produces: 전체 테스트와 구문 검사 결과.
 
-- [ ] **Step 1: Run full tests**
-  - Run: `node --test tests/*.test.js`
-  - Expected: 모든 테스트 PASS.
-- [ ] **Step 2: Run syntax checks**
-  - Run: `node --check applicant-detail-utils.js && node --check ranking-utils.js && node --check api/applicant-detail.js`
-  - Expected: exit code 0.
-- [ ] **Step 3: Review diff against the spec**
-  - 이름/팬수/메시지/입주비, 원문, 프로필, D-day가 모두 포함되고 기존 기능이 제거되지 않았는지 확인한다.
-- [ ] **Step 4: Commit any verification-only test adjustments if required**
-  - Production behavior 변경 없이 테스트 fixture 정합성만 필요한 경우에 한해 commit한다.
+- [x] **Step 1: Run focused and regression tests**
+  - applicant detail, ranking, schedule, new applicant, rank history 관련 로컬 검증 PASS.
+- [x] **Step 2: Run syntax checks**
+  - `node --check applicant-detail-utils.js`, `ranking-utils.js`, `api/applicant-detail.js` PASS.
+- [ ] **Step 3: Review branch diff against the spec and GitHub deployment status**
+- [ ] **Step 4: Finish branch and choose integration method**
