@@ -29,6 +29,28 @@ test('parses a label-delimited application template', () => {
   assert.equal(parsed.moveInFee, '동의합니다');
 });
 
+test('parses emoji bullet applications and keeps multiline messages separate from move-in fee', () => {
+  const parsed = parseApplicationComment(
+    '💙해콩\n\n💙524명\n\n💙그냥서버 너무너무 하고싶습니다!\n뉴걸이라 할수있는게 한정되어있는데 뽑아주시면 열심히할수있어요!!!\n\n💙입주비 동의함니다!',
+    '해콩°'
+  );
+  assert.equal(parsed.name, '해콩');
+  assert.equal(parsed.declaredFanCount, 524);
+  assert.equal(parsed.message, '그냥서버 너무너무 하고싶습니다!\n뉴걸이라 할수있는게 한정되어있는데 뽑아주시면 열심히할수있어요!!!');
+  assert.equal(parsed.moveInFee, '입주비 동의함니다!');
+});
+
+test('accepts decorated label variants for favorites, message and move-in fee', () => {
+  const parsed = parseApplicationComment(
+    '💙 이름 : 해콩\n💙 즐겨찾기수 : 524명\n💙 하고 싶은 말 : 꼭 참여하고 싶어요\n💙 입주비동의여부 : 동의합니다',
+    '해콩°'
+  );
+  assert.equal(parsed.name, '해콩');
+  assert.equal(parsed.declaredFanCount, 524);
+  assert.equal(parsed.message, '꼭 참여하고 싶어요');
+  assert.equal(parsed.moveInFee, '동의합니다');
+});
+
 test('normalizes Korean fan-count strings', () => {
   assert.equal(normalizeFanCount('29,633명'), 29633);
   assert.equal(normalizeFanCount('3.7만'), 37000);
@@ -64,4 +86,25 @@ test('uses current SOOP fan count and falls back to the application count', () =
   const fallback = formatApplicationDetail(raw, null);
   assert.equal(fallback.fanCount, 29633);
   assert.equal(fallback.fanCountSource, 'application');
+});
+
+test('reads the real nested SOOP station favorite count, profile image and preserves original comment', () => {
+  const originalComment = '💙해콩\n\n💙524명\n\n💙꼭 참여하고 싶어요\n\n💙입주비 동의합니다';
+  const raw = {
+    p_comment_no: 120017045,
+    user_id: 'yami875',
+    user_nick: '해콩°',
+    comment: originalComment,
+    photo: { url: '//stimg.sooplive.co.kr/COMMENT/3/application.png' }
+  };
+  const station = {
+    profile_image: '//profile.img.sooplive.co.kr/LOGO/ya/yami875/yami875.jpg',
+    station: { upd: { fan_cnt: 603 }, user_nick: '해콩°' }
+  };
+  const detail = formatApplicationDetail(raw, station);
+  assert.equal(detail.fanCount, 603);
+  assert.equal(detail.fanCountSource, 'soop');
+  assert.equal(detail.profileImageUrl, 'https://profile.img.sooplive.co.kr/LOGO/ya/yami875/yami875.jpg');
+  assert.equal(detail.photoUrl, 'https://stimg.sooplive.co.kr/COMMENT/3/application.png');
+  assert.equal(detail.originalComment, originalComment);
 });
