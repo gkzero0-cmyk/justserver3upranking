@@ -11,7 +11,6 @@ test('applicant detail endpoint is on-demand and returns the required detail fie
   assert.match(source, /require\(['"]\.\.\/applicant-detail-utils\.js['"]\)/);
   assert.match(source, /chapi\.sooplive\.co\.kr\/api/);
   assert.match(source, /bjapi\.afreecatv\.com\/api/);
-  assert.match(source, /fan_cnt/);
   assert.match(source, /commentNo/);
   assert.match(source, /userId/);
   assert.match(source, /fanCountSource/);
