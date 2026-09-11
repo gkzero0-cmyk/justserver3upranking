@@ -118,10 +118,7 @@ module.exports = async function handler(req, res) {
       station = await fetchStation(actualUserId).catch(() => null);
     }
 
-    // The public station JSON exposes the current SOOP favorite/fan count as fan_cnt.
-    const currentFanCount = station?.fan_cnt;
-    const stationForDetail = station ? { ...station, fan_cnt: currentFanCount } : null;
-    const detail = formatApplicationDetail(raw, stationForDetail);
+    const detail = formatApplicationDetail(raw, station);
     const finalUserId = detail.userId || actualUserId;
     const payload = {
       ok: true,
