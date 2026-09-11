@@ -5,12 +5,15 @@
     root.RankingUtils = api;
     if (root.document) {
       api.installServerScheduleUi(root);
+      api.installApplicantDetailEnhancements(root);
       api.installNewApplicantUi(root);
     }
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
-  const DEFAULT_RANK_CHANGE_TTL_MS = 24 * 60 * 60 * 1000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const DEFAULT_RANK_CHANGE_TTL_MS = DAY_MS;
+  const APPLICATION_DEADLINE_YMD = '2026-09-20';
 
   function favoriteKey(item) {
     const commentNo = String(item?.commentNo || '').trim();
@@ -137,6 +140,19 @@
     return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`;
   }
 
+  function getKstDdayLabel(targetYmd, nowMs = Date.now()) {
+    const match = String(targetYmd || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const now = Number(nowMs);
+    if (!match || !Number.isFinite(now)) return '';
+    const shifted = new Date(now + KST_OFFSET_MS);
+    const todayUtc = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate());
+    const targetUtc = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    const diff = Math.round((targetUtc - todayUtc) / DAY_MS);
+    if (diff > 0) return `D-${diff}`;
+    if (diff < 0) return `D+${Math.abs(diff)}`;
+    return 'D-DAY';
+  }
+
   function countKstToday(comments, nowMs = Date.now()) {
     const today = kstDayKey(nowMs);
     return (comments || []).reduce((count, item) => {
@@ -187,6 +203,9 @@
     return `
       .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
       .hero-main{flex:1;min-width:0}
+      .hero-title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+      .hero-title-row h1{margin-right:0}
+      .deadline-badge{display:inline-flex;align-items:center;justify-content:center;min-width:66px;height:34px;padding:0 12px;border-radius:999px;border:1px solid #6554d9;background:linear-gradient(135deg,#302667,#1b183e);color:#d8d0ff;font-size:14px;font-weight:950;letter-spacing:.01em;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
       .hero-schedule{width:320px;flex:0 0 320px;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:rgba(16,20,30,.92);box-shadow:0 10px 30px rgba(0,0,0,.18)}
       .schedule-title{font-size:12px;font-weight:900;color:#b9c5ff;margin-bottom:10px;letter-spacing:.08em}
       .schedule-item{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
@@ -224,11 +243,162 @@
       main.appendChild(child);
     }
 
+    const title = main.querySelector('h1');
+    if (title) {
+      const titleRow = doc.createElement('div');
+      titleRow.className = 'hero-title-row';
+      title.parentNode.insertBefore(titleRow, title);
+      titleRow.appendChild(title);
+      const deadlineBadge = doc.createElement('span');
+      deadlineBadge.id = 'deadlineBadge';
+      deadlineBadge.className = 'deadline-badge';
+      deadlineBadge.title = '접수 마감: 2026년 9월 20일';
+      const updateDeadline = () => {
+        deadlineBadge.textContent = getKstDdayLabel(APPLICATION_DEADLINE_YMD, Date.now());
+      };
+      updateDeadline();
+      titleRow.appendChild(deadlineBadge);
+      if (typeof root.setInterval === 'function') root.setInterval(updateDeadline, 60 * 1000);
+    }
+
     top.appendChild(main);
     const scheduleHost = doc.createElement('div');
     scheduleHost.innerHTML = serverScheduleMarkup().trim();
     if (scheduleHost.firstElementChild) top.appendChild(scheduleHost.firstElementChild);
     hero.insertBefore(top, actions);
+  }
+
+  function applicantDetailEnhancementCss() {
+    return `
+      .detail-profile-line{display:flex;align-items:center;gap:12px;margin:7px 0 4px;min-width:0}
+      .detail-profile-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;flex:0 0 46px;border:1px solid #394761;background:#20293a}
+      .detail-profile-fallback{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex:0 0 46px;border:1px solid #394761;background:#20293a;color:#aebbd3;font-size:13px;font-weight:900}
+      .detail-profile-line .detail-title{margin:0;min-width:0}
+      .detail-original{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
+      .detail-original-toggle{height:36px;padding:0 12px;border-radius:9px;border:1px solid #35435e;background:#171e2b;color:#d8e2f6;font-size:12px;font-weight:850;cursor:pointer}
+      .detail-original-toggle:hover{border-color:#637eb4;background:#202a3c;color:#fff}
+      .detail-original-body{margin:10px 0 0;padding:13px 14px;border:1px solid #283349;border-radius:10px;background:#0b1018;color:#cfd8e8;font:inherit;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto}
+      .detail-original-body[hidden]{display:none}
+    `;
+  }
+
+  function installApplicantDetailEnhancements(root) {
+    const doc = root?.document;
+    const detailBody = doc?.getElementById('applicantDetailBody');
+    if (!doc || !detailBody || root.__justserverApplicantDetailEnhancementsInstalled) return;
+    root.__justserverApplicantDetailEnhancementsInstalled = true;
+
+    const style = doc.createElement('style');
+    style.id = 'applicant-detail-enhancement-style';
+    style.textContent = applicantDetailEnhancementCss();
+    (doc.head || doc.documentElement).appendChild(style);
+
+    let latestDetail = null;
+    let scheduled = false;
+
+    const safeHttps = value => /^https:\/\//i.test(String(value || '')) ? String(value) : '';
+    const profileFallbackUrl = userId => {
+      const clean = String(userId || '').trim();
+      if (!clean) return '';
+      const prefix = clean.slice(0, 2).toLowerCase();
+      return `https://profile.img.sooplive.co.kr/LOGO/${prefix}/${encodeURIComponent(clean)}/${encodeURIComponent(clean)}.jpg`;
+    };
+
+    function apply() {
+      scheduled = false;
+      const content = detailBody.querySelector('.detail-content');
+      if (!content || !latestDetail) return;
+
+      const head = content.querySelector('.detail-head');
+      const title = head?.querySelector('.detail-title');
+      if (head && title && !head.querySelector('.detail-profile-line')) {
+        const line = doc.createElement('div');
+        line.className = 'detail-profile-line';
+        const imageUrl = safeHttps(latestDetail.profileImageUrl) || profileFallbackUrl(latestDetail.userId);
+        if (imageUrl) {
+          const img = doc.createElement('img');
+          img.className = 'detail-profile-avatar';
+          img.src = imageUrl;
+          img.alt = '';
+          img.addEventListener('error', () => {
+            img.style.display = 'none';
+            if (img.nextElementSibling) img.nextElementSibling.style.display = 'grid';
+          });
+          line.appendChild(img);
+          const fallback = doc.createElement('span');
+          fallback.className = 'detail-profile-fallback';
+          fallback.style.display = 'none';
+          fallback.textContent = String(latestDetail.name || '?').trim().slice(0, 1) || '?';
+          line.appendChild(fallback);
+        }
+        head.insertBefore(line, title);
+        line.appendChild(title);
+      }
+
+      const panel = content.querySelector('.detail-grid .detail-panel');
+      if (panel && !panel.querySelector('[data-detail-original]')) {
+        const original = String(latestDetail.originalComment || '').trim();
+        if (original) {
+          const wrap = doc.createElement('div');
+          wrap.className = 'detail-original';
+          wrap.setAttribute('data-detail-original', '1');
+          const button = doc.createElement('button');
+          button.type = 'button';
+          button.className = 'detail-original-toggle';
+          button.setAttribute('data-detail-original-toggle', '1');
+          button.setAttribute('aria-expanded', 'false');
+          button.textContent = '신청 댓글 원문 보기';
+          const body = doc.createElement('pre');
+          body.className = 'detail-original-body';
+          body.hidden = true;
+          body.textContent = original;
+          wrap.appendChild(button);
+          wrap.appendChild(body);
+          const links = panel.querySelector('.detail-links');
+          panel.insertBefore(wrap, links || null);
+        }
+      }
+    }
+
+    function scheduleApply() {
+      if (scheduled) return;
+      scheduled = true;
+      (root.requestAnimationFrame || root.setTimeout)(apply, 0);
+    }
+
+    detailBody.addEventListener('click', event => {
+      const button = event.target.closest('[data-detail-original-toggle]');
+      if (!button) return;
+      const body = button.nextElementSibling;
+      if (!body) return;
+      const expanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      button.textContent = expanded ? '신청 댓글 원문 보기' : '신청 댓글 원문 접기';
+      body.hidden = expanded;
+    });
+
+    if (root.MutationObserver) {
+      new root.MutationObserver(scheduleApply).observe(detailBody, { childList: true, subtree: true });
+    }
+
+    const originalFetch = root.fetch;
+    if (typeof originalFetch === 'function') {
+      root.fetch = async function (...args) {
+        const response = await originalFetch.apply(this, args);
+        try {
+          const request = args[0];
+          const requestUrl = typeof request === 'string' ? request : request?.url || '';
+          if (String(requestUrl).includes('/api/applicant-detail')) {
+            response.clone().json().then(data => {
+              if (!data?.ok) return;
+              latestDetail = data;
+              scheduleApply();
+            }).catch(() => {});
+          }
+        } catch {}
+        return response;
+      };
+    }
   }
 
   function installNewApplicantUi(root) {
@@ -390,6 +560,7 @@
     readRankChangeHistory,
     updateRankChangeHistory,
     parseKstDate,
+    getKstDdayLabel,
     countKstToday,
     getKstTodayKeys,
     readFavoriteIds,
@@ -397,6 +568,8 @@
     serverScheduleMarkup,
     serverScheduleCss,
     installServerScheduleUi,
+    applicantDetailEnhancementCss,
+    installApplicantDetailEnhancements,
     installNewApplicantUi
   };
 });
