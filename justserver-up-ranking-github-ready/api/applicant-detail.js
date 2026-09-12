@@ -126,6 +126,7 @@ module.exports = async function handler(req, res) {
       userId: finalUserId,
       fanCountSource: detail.fanCountSource,
       photoUrl: detail.photoUrl,
+      chzzkStationUrl: detail.chzzkStationUrl,
       commentUrl: `${POST_URL}#comment_noti${encodeURIComponent(commentNo)}`,
       stationUrl: `https://www.sooplive.com/station/${encodeURIComponent(finalUserId)}`,
       fetchedAt: new Date().toISOString()
