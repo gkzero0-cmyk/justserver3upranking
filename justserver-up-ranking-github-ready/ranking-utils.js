@@ -190,6 +190,21 @@
     return [...set];
   }
 
+  function isChzzkApplicant(item) {
+    const comment = String(item?.comment || '').trim();
+    return comment.includes('치지직') || comment.includes('옆동네');
+  }
+
+  function countChzzkApplicants(comments) {
+    const applicants = new Set();
+    for (const item of comments || []) {
+      if (!isChzzkApplicant(item)) continue;
+      const userId = String(item?.userId || '').trim();
+      applicants.add(userId ? `user:${userId}` : favoriteKey(item));
+    }
+    return applicants.size;
+  }
+
   function serverScheduleMarkup() {
     return `<aside class="hero-schedule" aria-label="서버 일정">
       <div class="schedule-title">SERVER SCHEDULE</div>
@@ -566,6 +581,8 @@
     getKstTodayKeys,
     readFavoriteIds,
     toggleFavoriteId,
+    isChzzkApplicant,
+    countChzzkApplicants,
     serverScheduleMarkup,
     serverScheduleCss,
     installServerScheduleUi,
