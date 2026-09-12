@@ -15,7 +15,7 @@
     return cleanText(value)
       .replace(/https?:\/\/(?:m\.)?chzzk\.naver\.com\/(?:live\/)?[A-Za-z0-9_-]+(?:[/?#][^\s]*)?/gi, ' ')
       .replace(/\[\s*(?:치지직|chzzk)(?:\s*[/:：-]?\s*[0-9][0-9,.]*(?:만|천)?\s*명?)?\s*\]/giu, ' ')
-      .replace(/\(\s*(?:치지직|chzzk)\s*\)/giu, ' ')
+      .replace(/\(\s*(?:치지직|chzzk)[^)]*\)/giu, ' ')
       .replace(/^\s*(?:\[\s*(?:치지직|chzzk)\s*\]|\(\s*(?:치지직|chzzk)\s*\))\s*/iu, '')
       .replace(/\s*(?:\[\s*(?:치지직|chzzk)\s*\]|\(\s*(?:치지직|chzzk)\s*\))\s*$/iu, '')
       .replace(/\s*(?:>>|>|→|➡)+\s*$/u, '')
@@ -61,7 +61,7 @@
     const afterPlatform = text.match(/(?:치지직|chzzk)\s*(?:팔로워?|팔로우|즐겨찾기|즐찾|팬|애청자)?\s*(?:수)?\s*[:：-]?\s*([0-9][0-9,.]*(?:만|천)?(?:\s*\+\s*[0-9,]+)?)/iu);
     if (afterPlatform) return normalizeFanCount(afterPlatform[1]);
 
-    const beforePlatform = text.match(/([0-9][0-9,.]*(?:만|천)?(?:\s*\+\s*[0-9,]+)?)\s*명?\s*\(?\s*(?:치지직|chzzk)\s*\)?/iu);
+    const beforePlatform = text.match(/([0-9][0-9,.]*(?:만|천)?(?:\s*\+\s*[0-9,]+)?)\s*명?[^\n]{0,12}?(?:치지직|chzzk)/iu);
     if (beforePlatform) return normalizeFanCount(beforePlatform[1]);
 
     return null;
@@ -70,10 +70,10 @@
   function parseLabeledApplication(text, fallback, preferChzzkCount = false) {
     const result = { name: fallback, declaredFanCount: null, message: '', moveInFee: '' };
     const labels = {
-      name: /^(?:이름|닉네임|방송명|신청자)\s*(?::|：|-)?\s*(.*)$/iu,
-      fan: /^(?:(?:치지직|chzzk)\s*)?(?:애청자(?:\s*수)?|즐겨찾기(?:\s*수)?|즐찾(?:\s*수)?|팔로워?(?:\s*수)?|팔로우(?:\s*수|\s*\(\s*chzzk\s*\))?|팬(?:\s*수)?)\s*(?::|：|-)?\s*(.*)$/iu,
-      message: /^(?:하고\s*싶은\s*말|하고싶은말|한마디|메시지|지원\s*동기|멘트)\s*(?::|：|-)?\s*(.*)$/iu,
-      fee: /^(?:입주비\s*(?:동의\s*(?:여부)?)?|입주비동의여부)\s*(?::|：|-)?\s*(.*)$/iu,
+      name: /^(?:이\s*름|닉\s*네\s*임|방\s*송\s*명|신\s*청\s*자)\s*(?::|：|-)?\s*(.*)$/iu,
+      fan: /^(?:(?:치지직|chzzk)\s*)?(?:애\s*청\s*자(?:\s*수)?|즐\s*겨\s*찾\s*기(?:\s*수)?|즐\s*찾(?:\s*수)?|팔\s*로\s*워?(?:\s*수)?|팔\s*로\s*우(?:\s*수|\s*\(\s*chzzk\s*\))?|팬(?:\s*수)?)(?:\s*\(\s*팔\s*로\s*우\s*\))?\s*(?::|：|-)?\s*(.*)$/iu,
+      message: /^(?:하고\s*싶은\s*말|한\s*마\s*디|메\s*시\s*지|지\s*원\s*동\s*기|멘\s*트)\s*(?::|：|-)?\s*(.*)$/iu,
+      fee: /^(?:입\s*주\s*비\s*(?:동\s*의\s*(?:여\s*부)?)?|입\s*주\s*비\s*동\s*의\s*여\s*부)\s*(?::|：|-)?\s*(.*)$/iu,
       link: /^(?:링크|방송국|치지직\s*(?:링크|방송국))\s*(?::|：|-)?\s*(.*)$/iu
     };
 
@@ -103,10 +103,12 @@
         labelHits += 1;
       } else if (line.match(labels.link) || extractChzzkStationUrl(originalLine)) {
         currentField = '';
-      } else if (currentField === 'message' && result.message) {
-        result.message += `\n${cleanText(originalLine)}`;
-      } else if (currentField === 'fee' && result.moveInFee) {
-        result.moveInFee += `\n${cleanText(originalLine)}`;
+      } else if (currentField === 'message') {
+        const extra = cleanText(originalLine);
+        if (extra) result.message = result.message ? `${result.message}\n${extra}` : extra;
+      } else if (currentField === 'fee') {
+        const extra = cleanText(originalLine);
+        if (extra) result.moveInFee = result.moveInFee ? `${result.moveInFee}\n${extra}` : extra;
       }
     }
 
