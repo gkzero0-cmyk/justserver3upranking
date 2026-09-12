@@ -11,6 +11,17 @@
     return cleanText(value).replace(/^[^\p{L}\p{N}]+/u, '').trim();
   }
 
+  function stripChzzkTag(value) {
+    return cleanText(value)
+      .replace(/\s*(?:\[\s*치지직\s*\]|\(\s*치지직\s*\))\s*$/iu, '')
+      .trim();
+  }
+
+  function extractChzzkStationUrl(value) {
+    const match = cleanText(value).match(/https?:\/\/chzzk\.naver\.com\/[A-Za-z0-9_-]+/i);
+    return match ? match[0] : '';
+  }
+
   function normalizeFanCount(value) {
     if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? Math.round(value) : null;
     const raw = cleanText(value).replace(/\s+/g, '');
@@ -49,6 +60,20 @@
     let labelHits = 0;
     let currentField = '';
     const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+
+    if (lines.length >= 4) {
+      const firstLine = lines[0].match(/^(.*?)\s*\/\s*([^/]+)$/u);
+      const chzzkStationUrl = extractChzzkStationUrl(lines[1]);
+      const declaredFanCount = firstLine ? normalizeFanCount(firstLine[2]) : null;
+      const lastLine = lines[lines.length - 1];
+      if (firstLine && chzzkStationUrl && declaredFanCount !== null && /입주비|동의|비동의/iu.test(lastLine)) {
+        result.name = stripChzzkTag(stripDecoration(firstLine[1])) || result.name;
+        result.declaredFanCount = declaredFanCount;
+        result.message = lines.slice(2, -1).join('\n').trim();
+        result.moveInFee = cleanText(lastLine);
+        return result;
+      }
+    }
 
     for (const originalLine of lines) {
       const line = stripDecoration(originalLine);
@@ -161,7 +186,8 @@
       moveInFee: parsed.moveInFee || '정보 없음',
       originalComment: comment,
       profileImageUrl: normalizePhotoUrl(station?.profile_image || station?.profileImage || station?.station?.profile_image || null),
-      photoUrl: normalizePhotoUrl(raw.photo || raw.attachment || raw.image || null)
+      photoUrl: normalizePhotoUrl(raw.photo || raw.attachment || raw.image || null),
+      chzzkStationUrl: extractChzzkStationUrl(comment)
     };
   }
 
@@ -169,6 +195,7 @@
     parseApplicationComment,
     normalizePhotoUrl,
     normalizeFanCount,
+    extractChzzkStationUrl,
     formatApplicationDetail
   };
 });
