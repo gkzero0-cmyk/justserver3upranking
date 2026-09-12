@@ -542,6 +542,7 @@ function countLowSoopFavoriteApplicants(comments, limit = 500) {
   let filterActive = false;
   let dataReady = false;
   let scheduled = false;
+  let suppressLowFilterReset = false;
 
   function setData(comments) {
     lowUsers = new Set();
@@ -601,6 +602,7 @@ function countLowSoopFavoriteApplicants(comments, limit = 500) {
   function setFilter(next) {
     filterActive = Boolean(next);
     if (filterActive) {
+      suppressLowFilterReset = true;
       for (const id of ['favoriteFilterBtn', 'chzzkFilterBtn']) {
         const other = doc.getElementById(id);
         if (other?.getAttribute('aria-pressed') === 'true') other.click();
@@ -612,6 +614,7 @@ function countLowSoopFavoriteApplicants(comments, limit = 500) {
         search.value = '';
         search.dispatchEvent(new root.Event('input', { bubbles: true }));
       }
+      suppressLowFilterReset = false;
     }
     scheduleApply();
   }
@@ -619,7 +622,7 @@ function countLowSoopFavoriteApplicants(comments, limit = 500) {
   button.addEventListener('click', () => setFilter(!filterActive));
   for (const id of ['favoriteFilterBtn', 'chzzkFilterBtn']) {
     doc.getElementById(id)?.addEventListener('click', () => {
-      if (!filterActive) return;
+      if (suppressLowFilterReset || !filterActive) return;
       filterActive = false;
       scheduleApply();
     });
