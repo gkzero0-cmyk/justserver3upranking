@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/ranking-utils.js",
+      "destination": "/ranking-utils-loader.js"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     }
