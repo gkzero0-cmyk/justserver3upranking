@@ -30,25 +30,11 @@ jobs:
           if 'function extractSoopFavoriteCount' in source:
               raise SystemExit(0)
 
-          source = source.replace(
-              "      api.installNewApplicantUi(root);\n",
-              "      api.installNewApplicantUi(root);\n      api.installLowSoopFavoriteUi(root);\n",
-              1,
-          )
-
-          chzzk_block = '''  function countChzzkApplicants(comments) {
-            const applicants = new Set();
-            for (const item of comments || []) {
-              if (!isChzzkApplicant(item)) continue;
-              const userId = String(item?.userId || '').trim();
-              applicants.add(userId ? `user:${userId}` : favoriteKey(item));
-            }
-            return applicants.size;
-          }
-
-          '''
-          if chzzk_block not in source:
-              raise SystemExit('countChzzkApplicants block not found')
+          wrapper_old = "      api.installNewApplicantUi(root);\n"
+          wrapper_new = "      api.installNewApplicantUi(root);\n      api.installLowSoopFavoriteUi(root);\n"
+          if wrapper_old not in source:
+              raise SystemExit('wrapper marker not found')
+          source = source.replace(wrapper_old, wrapper_new, 1)
 
           low_helpers = r'''  function normalizeSoopCountToken(value) {
             const raw = String(value ?? '').replace(/\s+/g, '');
@@ -131,11 +117,10 @@ jobs:
           }
 
           '''
-          source = source.replace(chzzk_block, chzzk_block + low_helpers, 1)
-
-          new_ui_marker = '  function installNewApplicantUi(root) {\n'
-          if new_ui_marker not in source:
-              raise SystemExit('installNewApplicantUi marker not found')
+          helper_marker = '\n  function serverScheduleMarkup() {'
+          if helper_marker not in source:
+              raise SystemExit('helper marker not found')
+          source = source.replace(helper_marker, '\n' + low_helpers + '  function serverScheduleMarkup() {', 1)
 
           low_ui = r'''  function installLowSoopFavoriteUi(root) {
             const doc = root?.document;
@@ -221,17 +206,14 @@ jobs:
               let emptyRow = tbody.querySelector('tr[data-low-soop-empty="1"]');
               if (filterActive && dataReady && matching === 0) {
                 const existingEmpty = tbody.querySelector('.empty');
-                if (existingEmpty) {
-                  existingEmpty.textContent = 'SOOP 즐겨찾기 500명 이하 신청자가 없습니다.';
-                } else if (!emptyRow) {
+                if (existingEmpty) existingEmpty.textContent = 'SOOP 즐겨찾기 500명 이하 신청자가 없습니다.';
+                else if (!emptyRow) {
                   emptyRow = doc.createElement('tr');
                   emptyRow.setAttribute('data-low-soop-empty', '1');
                   emptyRow.innerHTML = '<td colspan="6"><div class="empty">SOOP 즐겨찾기 500명 이하 신청자가 없습니다.</div></td>';
                   tbody.appendChild(emptyRow);
                 }
-              } else if (emptyRow) {
-                emptyRow.remove();
-              }
+              } else if (emptyRow) emptyRow.remove();
             }
 
             function scheduleApply() {
@@ -272,9 +254,7 @@ jobs:
               scheduleApply();
             });
 
-            if (tbody && root.MutationObserver) {
-              new root.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
-            }
+            if (tbody && root.MutationObserver) new root.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
 
             const originalFetch = root.fetch;
             if (typeof originalFetch === 'function') {
@@ -285,8 +265,7 @@ jobs:
                   const requestUrl = typeof request === 'string' ? request : request?.url || '';
                   if (String(requestUrl).includes('/api/comments')) {
                     response.clone().json().then(data => {
-                      if (!Array.isArray(data?.comments)) return;
-                      setData(data.comments);
+                      if (Array.isArray(data?.comments)) setData(data.comments);
                     }).catch(() => {});
                   }
                 } catch {}
@@ -298,18 +277,22 @@ jobs:
           }
 
           '''
-          source = source.replace(new_ui_marker, low_ui + new_ui_marker, 1)
+          ui_marker = '\n  function installNewApplicantUi(root) {'
+          if ui_marker not in source:
+              raise SystemExit('UI marker not found')
+          source = source.replace(ui_marker, '\n' + low_ui + '  function installNewApplicantUi(root) {', 1)
 
-          source = source.replace(
-              '    isChzzkApplicant,\n    countChzzkApplicants,\n',
-              '    isChzzkApplicant,\n    countChzzkApplicants,\n    extractSoopFavoriteCount,\n    isLowSoopFavoriteApplicant,\n    countLowSoopFavoriteApplicants,\n',
-              1,
-          )
-          source = source.replace(
-              '    installApplicantDetailEnhancements,\n    installNewApplicantUi\n',
-              '    installApplicantDetailEnhancements,\n    installNewApplicantUi,\n    installLowSoopFavoriteUi\n',
-              1,
-          )
+          export_helpers_old = '    isChzzkApplicant,\n    countChzzkApplicants,\n'
+          export_helpers_new = '    isChzzkApplicant,\n    countChzzkApplicants,\n    extractSoopFavoriteCount,\n    isLowSoopFavoriteApplicant,\n    countLowSoopFavoriteApplicants,\n'
+          if export_helpers_old not in source:
+              raise SystemExit('helper export marker not found')
+          source = source.replace(export_helpers_old, export_helpers_new, 1)
+
+          export_ui_old = '    installApplicantDetailEnhancements,\n    installNewApplicantUi\n'
+          export_ui_new = '    installApplicantDetailEnhancements,\n    installNewApplicantUi,\n    installLowSoopFavoriteUi\n'
+          if export_ui_old not in source:
+              raise SystemExit('UI export marker not found')
+          source = source.replace(export_ui_old, export_ui_new, 1)
 
           path.write_text(source, encoding='utf-8')
           PY
