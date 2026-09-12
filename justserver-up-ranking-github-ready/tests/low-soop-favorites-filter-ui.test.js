@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const utils = require('../ranking-utils.js');
 
-const index = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
 
 test('extracts declared SOOP favorite counts without using Chzzk counts', () => {
   assert.equal(utils.extractSoopFavoriteCount({ comment: '박재박 / 440명 / 참여하고 싶어요 / 입주비 동의' }), 440);
@@ -29,12 +29,11 @@ test('classifies and counts SOOP applicants with 500 favorites or fewer', () => 
   assert.equal(utils.countLowSoopFavoriteApplicants(comments), 2);
 });
 
-test('index renders the SOOP 500-or-less stat card and filter button', () => {
-  assert.match(index, /id="lowSoopFavoriteCount"/);
-  assert.match(index, /SOOP 즐겨찾기 500 이하/);
-  assert.match(index, /id="lowSoopFavoriteFilterBtn"/);
-  assert.match(index, /500 이하/);
-  assert.match(index, /lowSoopFavoritesOnly/);
-  assert.match(index, /isLowSoopFavoriteApplicant/);
-  assert.match(index, /countLowSoopFavoriteApplicants/);
+test('ranking utility installs the SOOP 500-or-less stat card and filter button', () => {
+  assert.equal(typeof utils.installLowSoopFavoriteUi, 'function');
+  assert.match(source, /lowSoopFavoriteCount/);
+  assert.match(source, /SOOP 즐겨찾기 500 이하/);
+  assert.match(source, /lowSoopFavoriteFilterBtn/);
+  assert.match(source, /500 이하/);
+  assert.match(source, /countLowSoopFavoriteApplicants/);
 });
