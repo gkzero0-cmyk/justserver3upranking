@@ -11,6 +11,16 @@
     return cleanText(value).replace(/^[^\p{L}\p{N}]+/u, '').trim();
   }
 
+  function cleanApplicantName(value) {
+    return cleanText(value).replace(/\s*\[\s*치지직\s*\]\s*$/i, '').trim();
+  }
+
+  function extractChzzkStationUrl(value) {
+    const text = cleanText(value);
+    const match = text.match(/https?:\/\/chzzk\.naver\.com\/([A-Za-z0-9_-]+)/i);
+    return match ? `https://chzzk.naver.com/${match[1]}` : '';
+  }
+
   function normalizeFanCount(value) {
     if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? Math.round(value) : null;
     const raw = cleanText(value).replace(/\s+/g, '');
@@ -31,12 +41,13 @@
 
   function parseApplicationComment(value, fallbackName = '') {
     const text = cleanText(value);
-    const fallback = cleanText(fallbackName);
+    const fallback = cleanApplicantName(fallbackName);
     const result = {
       name: fallback,
       declaredFanCount: null,
       message: '',
-      moveInFee: ''
+      moveInFee: '',
+      chzzkStationUrl: extractChzzkStationUrl(text)
     };
     if (!text) return result;
 
@@ -50,11 +61,25 @@
     let currentField = '';
     const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
 
+    const headerMatch = lines[0]?.match(/^(.+?)\s*\/\s*([0-9][0-9,]*(?:\.[0-9]+)?\s*(?:만|천)?(?:\s*\+\s*[0-9,]+)?)\s*명?\s*$/i);
+    if (headerMatch) {
+      const feeIndex = lines.findLastIndex(line => /입주비.*(?:동의|비동의)/i.test(line));
+      let messageStart = 1;
+      if (/^https?:\/\/chzzk\.naver\.com\//i.test(lines[messageStart] || '')) messageStart += 1;
+      if (feeIndex >= messageStart) {
+        result.name = cleanApplicantName(headerMatch[1]) || result.name;
+        result.declaredFanCount = normalizeFanCount(headerMatch[2]);
+        result.message = lines.slice(messageStart, feeIndex).join('\n').trim();
+        result.moveInFee = cleanText(lines[feeIndex]);
+        return result;
+      }
+    }
+
     for (const originalLine of lines) {
       const line = stripDecoration(originalLine);
       let match;
       if ((match = line.match(labels.name))) {
-        result.name = cleanText(match[1]) || result.name;
+        result.name = cleanApplicantName(match[1]) || result.name;
         currentField = 'name';
         labelHits += 1;
       } else if ((match = line.match(labels.fan))) {
@@ -79,7 +104,7 @@
 
     const parts = text.split(/\s*\/\s*/).map(x => x.trim()).filter(Boolean);
     if (parts.length >= 4) {
-      result.name = stripDecoration(parts[0]) || result.name;
+      result.name = cleanApplicantName(stripDecoration(parts[0])) || result.name;
       result.declaredFanCount = normalizeFanCount(parts[1]);
       result.message = parts.slice(2, -1).join(' / ').trim();
       result.moveInFee = parts[parts.length - 1] || '';
@@ -106,7 +131,7 @@
     const secondFanCount = blocks.length >= 2 ? normalizeFanCount(blocks[1]) : null;
     const lastBlock = blocks.length ? blocks[blocks.length - 1] : '';
     if (blocks.length >= 4 && secondFanCount !== null && /입주비|동의|비동의/i.test(lastBlock)) {
-      result.name = cleanText(blocks[0]) || result.name;
+      result.name = cleanApplicantName(blocks[0]) || result.name;
       result.declaredFanCount = secondFanCount;
       result.message = blocks.slice(2, -1).join('\n').trim();
       result.moveInFee = cleanText(lastBlock);
@@ -160,6 +185,7 @@
       message: parsed.message || comment || '정보 없음',
       moveInFee: parsed.moveInFee || '정보 없음',
       originalComment: comment,
+      chzzkStationUrl: parsed.chzzkStationUrl || extractChzzkStationUrl(comment),
       profileImageUrl: normalizePhotoUrl(station?.profile_image || station?.profileImage || station?.station?.profile_image || null),
       photoUrl: normalizePhotoUrl(raw.photo || raw.attachment || raw.image || null)
     };
@@ -169,6 +195,7 @@
     parseApplicationComment,
     normalizePhotoUrl,
     normalizeFanCount,
+    extractChzzkStationUrl,
     formatApplicationDetail
   };
 });
