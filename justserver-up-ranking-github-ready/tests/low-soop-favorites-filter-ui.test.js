@@ -37,3 +37,8 @@ test('ranking utility installs the SOOP 500-or-less stat card and filter button'
   assert.match(source, /500 이하/);
   assert.match(source, /countLowSoopFavoriteApplicants/);
 });
+
+test('SOOP 500-or-less filter suppresses its own reset while turning off conflicting filters', () => {
+  assert.match(source, /suppressLowFilterReset/);
+  assert.match(source, /if \(suppressLowFilterReset \|\| !filterActive\) return;/);
+});
