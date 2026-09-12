@@ -1,4 +1,4 @@
-const { formatApplicationDetail } = require('../applicant-detail-utils.js');
+const { formatApplicationDetail, normalizeFanCount } = require('../applicant-detail-utils.js');
 
 const CHANNEL_ID = 'chunbongtv';
 const POST_ID = '204274449';
@@ -73,6 +73,12 @@ async function fetchStation(userId) {
   return fetchJson(url, `https://www.sooplive.com/station/${encodeURIComponent(userId)}`);
 }
 
+function currentSoopFanCount(station) {
+  return normalizeFanCount(
+    station?.station?.upd?.fan_cnt ?? station?.upd?.fan_cnt ?? station?.fan_cnt ?? station?.fanCount
+  );
+}
+
 function getCached(key, now) {
   const cached = detailCache.get(key);
   if (!cached) return null;
@@ -125,6 +131,7 @@ module.exports = async function handler(req, res) {
       ...detail,
       userId: finalUserId,
       fanCountSource: detail.fanCountSource,
+      soopFanCount: currentSoopFanCount(station),
       photoUrl: detail.photoUrl,
       commentUrl: `${POST_URL}#comment_noti${encodeURIComponent(commentNo)}`,
       stationUrl: `https://www.sooplive.com/station/${encodeURIComponent(finalUserId)}`,
