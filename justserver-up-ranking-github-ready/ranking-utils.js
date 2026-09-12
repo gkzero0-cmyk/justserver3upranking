@@ -13,7 +13,7 @@
   const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
   const DAY_MS = 24 * 60 * 60 * 1000;
   const DEFAULT_RANK_CHANGE_TTL_MS = DAY_MS;
-  const APPLICATION_DEADLINE_YMD = '2026-09-20';
+  const APPLICATION_DEADLINE_YMD = '2026-09-16';
 
   function favoriteKey(item) {
     const commentNo = String(item?.commentNo || '').trim();
@@ -193,8 +193,9 @@
   function serverScheduleMarkup() {
     return `<aside class="hero-schedule" aria-label="서버 일정">
       <div class="schedule-title">SERVER SCHEDULE</div>
-      <div class="schedule-item"><span>접수마감</span><strong>2026년 9월 20일</strong></div>
-      <div class="schedule-item"><span>입주발표</span><strong>2026년 9월 22일</strong></div>
+      <div class="schedule-item"><span>접수마감</span><strong>2026년 9월 16일 00시</strong></div>
+      <div class="schedule-item"><span>서버설명회</span><strong>2026년 9월 19일 토요일 오후 8시</strong></div>
+      <div class="schedule-item"><span>입주발표</span><strong>2026년 9월 19일 서버 설명회 이후 게시글로 공지</strong></div>
       <div class="schedule-item"><span>서버기간</span><strong>2026. 9. 30 ~ 2026. 10. 21</strong></div>
     </aside>`;
   }
@@ -211,7 +212,7 @@
       .schedule-item{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
       .schedule-item:first-of-type{border-top:0;padding-top:0}
       .schedule-item span{font-size:11px;color:#8d98aa;font-weight:800;white-space:nowrap}
-      .schedule-item strong{font-size:13px;color:#f4f7fb;font-weight:900;line-height:1.4;white-space:nowrap}
+      .schedule-item strong{font-size:13px;color:#f4f7fb;font-weight:900;line-height:1.4;white-space:normal;word-break:keep-all}
       @media(max-width:980px){
         .hero-top{flex-direction:column}
         .hero-schedule{width:100%;flex:1 1 auto}
@@ -252,7 +253,7 @@
       const deadlineBadge = doc.createElement('span');
       deadlineBadge.id = 'deadlineBadge';
       deadlineBadge.className = 'deadline-badge';
-      deadlineBadge.title = '접수 마감: 2026년 9월 20일';
+      deadlineBadge.title = '접수 마감: 2026년 9월 16일 00시';
       const updateDeadline = () => {
         deadlineBadge.textContent = getKstDdayLabel(APPLICATION_DEADLINE_YMD, Date.now());
       };
