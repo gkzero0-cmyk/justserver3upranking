@@ -1,0 +1,165 @@
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  if (root && root.document && typeof root.fetch === 'function') api.install(root);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  function normalizeCommentText(value) {
+    return String(value ?? '')
+      .replace(/<br\s*\/?\s*>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\p{Cf}/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isFreepassUseComment(value) {
+    const text = normalizeCommentText(value);
+    if (!/프리\s*패스/iu.test(text)) return false;
+    const denied = /프리\s*패스\s*권?\s*(?:을|를|은|는)?\s*(?:사용\s*(?:안|않|하지)|안\s*(?:쓰|쓸|사용)|쓰지\s*않|사용하지\s*않|없이|제외|미사용)/iu;
+    if (denied.test(text)) return false;
+    return /프리\s*패스\s*권?\s*(?:을|를|은|는)?\s*(?:사용\s*(?:합니다|하겠습니다|할\s*게요)|쓰겠습니다|씁니다|쓸\s*게요)/iu.test(text);
+  }
+
+  function freepassKey(item) {
+    const commentNo = String(item?.commentNo ?? item?.p_comment_no ?? item?.comment_no ?? '').trim();
+    const userId = String(item?.userId ?? item?.user_id ?? '').trim().toLowerCase();
+    return commentNo && userId ? `${commentNo}:${userId}` : '';
+  }
+
+  function install(win) {
+    if (!win || !win.document || typeof win.fetch !== 'function' || win.__justserverFreepassFilterInstalled) return;
+    win.__justserverFreepassFilterInstalled = true;
+    const doc = win.document;
+    const nativeFetch = win.fetch.bind(win);
+    let freepassKeys = new Set();
+    let filterActive = false;
+    let applyQueued = false;
+
+    function ensureStyle() {
+      if (doc.getElementById('freepassFilterStyle')) return;
+      const style = doc.createElement('style');
+      style.id = 'freepassFilterStyle';
+      style.textContent = `
+        .freepass-filter-btn{height:34px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#8390a5;font-size:12px;font-weight:850;cursor:pointer;white-space:nowrap}
+        .freepass-filter-btn:hover{color:#eadcff;background:#1d1728}.freepass-filter-btn.active{background:#3b245d;color:#eadcff;box-shadow:inset 0 0 0 1px #7046a7}
+        .freepass-badge{display:inline-flex;align-items:center;height:21px;padding:0 7px;border-radius:999px;border:1px solid #69459a;background:#2b1c42;color:#d9bfff;font-size:9px;font-weight:900;white-space:nowrap;flex:0 0 auto}
+        #tbody.freepass-filter-active tr[data-rank]:not([data-freepass="1"]){display:none!important}
+      `;
+      (doc.head || doc.documentElement).appendChild(style);
+    }
+
+    function ensureStat() {
+      const stats = doc.querySelector('.stats');
+      if (!stats) return null;
+      stats.style.gridTemplateColumns = 'repeat(auto-fit,minmax(140px,1fr))';
+      let card = doc.getElementById('freepassStat');
+      if (!card) {
+        card = doc.createElement('div');
+        card.id = 'freepassStat';
+        card.className = 'stat';
+        card.innerHTML = '<div class="k">프리패스 신청자</div><div class="v" id="freepassCount">0명</div>';
+        stats.appendChild(card);
+      }
+      return card;
+    }
+
+    function ensureFilterButton() {
+      const tabs = doc.querySelector('.sort-tabs');
+      if (!tabs) return null;
+      let button = tabs.querySelector('.freepass-filter-btn');
+      if (!button) {
+        button = doc.createElement('button');
+        button.type = 'button';
+        button.className = 'freepass-filter-btn';
+        button.textContent = '프리패스';
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+          filterActive = !filterActive;
+          apply();
+        });
+        tabs.appendChild(button);
+      }
+      return button;
+    }
+
+    function rowKey(row) {
+      const trigger = row?.querySelector?.('.detail-trigger[data-detail-comment][data-detail-user]');
+      if (!trigger) return '';
+      return freepassKey({ commentNo: trigger.dataset.detailComment, userId: trigger.dataset.detailUser });
+    }
+
+    function syncRow(row) {
+      const matched = freepassKeys.has(rowKey(row));
+      row.setAttribute('data-freepass', matched ? '1' : '0');
+      const nameRow = row.querySelector('.name-row');
+      if (!nameRow) return;
+      let badge = nameRow.querySelector('.freepass-badge');
+      if (matched && !badge) {
+        badge = doc.createElement('span');
+        badge.className = 'freepass-badge';
+        badge.textContent = '프리패스';
+        badge.title = '신청 댓글에서 프리패스권 사용 의사를 확인했습니다.';
+        nameRow.appendChild(badge);
+      } else if (!matched && badge) {
+        badge.remove();
+      }
+    }
+
+    function apply() {
+      applyQueued = false;
+      ensureStyle();
+      ensureStat();
+      const button = ensureFilterButton();
+      const count = doc.getElementById('freepassCount');
+      if (count) count.textContent = `${freepassKeys.size}명`;
+      if (button) {
+        button.classList.toggle('active', filterActive);
+        button.setAttribute('aria-pressed', filterActive ? 'true' : 'false');
+      }
+      const tbody = doc.getElementById('tbody');
+      if (!tbody) return;
+      tbody.classList.toggle('freepass-filter-active', filterActive);
+      for (const row of tbody.querySelectorAll('tr[data-rank]')) syncRow(row);
+    }
+
+    function scheduleApply() {
+      if (applyQueued) return;
+      applyQueued = true;
+      const raf = win.requestAnimationFrame || (callback => win.setTimeout(callback, 0));
+      raf(apply);
+    }
+
+    function updateComments(comments) {
+      const next = new Set();
+      for (const item of comments || []) {
+        if (!isFreepassUseComment(item?.comment)) continue;
+        const key = freepassKey(item);
+        if (key) next.add(key);
+      }
+      freepassKeys = next;
+      scheduleApply();
+    }
+
+    win.fetch = async (...args) => {
+      const response = await nativeFetch(...args);
+      try {
+        const rawUrl = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+        if (String(rawUrl).includes('/api/comments')) {
+          response.clone().json().then(data => {
+            if (Array.isArray(data?.comments)) updateComments(data.comments);
+          }).catch(() => {});
+        }
+      } catch {}
+      return response;
+    };
+
+    const tbody = doc.getElementById('tbody');
+    if (tbody && win.MutationObserver) new win.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
+    ensureStyle();
+    ensureStat();
+    ensureFilterButton();
+    scheduleApply();
+  }
+
+  return { normalizeCommentText, isFreepassUseComment, freepassKey, install };
+});

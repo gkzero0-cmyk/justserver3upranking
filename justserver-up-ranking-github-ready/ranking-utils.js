@@ -5,6 +5,7 @@
   const baseUrl = new URL('./ranking-utils-base.js', source).href;
   const detailUtilsUrl = new URL('./applicant-detail-utils.js', source).href;
   const followerColumnUrl = new URL('./applicant-follower-column.js', source).href;
+  const freepassUrl = new URL('./freepass-filter.js', source).href;
   const fixUrl = new URL('./live-soop-filter-fix.js', source).href;
   const detailHotfixUrl = new URL('./applicant-detail-navigation-hotfix.js', source).href;
   const detailV2ClientUrl = new URL('./applicant-detail-v2-client.js', source).href;
@@ -12,6 +13,7 @@
   document.write(`<script src="${baseUrl}"><\/script>`);
   document.write(`<script src="${detailUtilsUrl}"><\/script>`);
   document.write(`<script src="${followerColumnUrl}"><\/script>`);
+  document.write(`<script src="${freepassUrl}"><\/script>`);
   document.write(`<script src="${fixUrl}"><\/script>`);
   document.write(`<script src="${detailHotfixUrl}"><\/script>`);
   document.write(`<script src="${detailV2ClientUrl}"><\/script>`);
