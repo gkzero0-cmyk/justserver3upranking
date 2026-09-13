@@ -12,6 +12,12 @@
     return Number.isFinite(number) && number >= 0 ? Math.round(number) : null;
   }
 
+  function filterStatusText(dataReady, loadError, count) {
+    if (loadError) return '확인 실패';
+    if (!dataReady) return '확인 중…';
+    return `${Math.max(0, Number(count) || 0)}명`;
+  }
+
   function commentText(item) {
     return String(item?.comment || '').replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '').trim();
   }
@@ -56,6 +62,18 @@
     return { users: [...lowUsers], keys: [...lowKeys] };
   }
 
+  function ensureAuthoritativeStyle(doc) {
+    if (!doc || doc.getElementById('low-soop-authoritative-style')) return;
+    const style = doc.createElement('style');
+    style.id = 'low-soop-authoritative-style';
+    style.textContent = `
+      #tbody.low-soop-filter-active[data-low-soop-live-ready="0"] tr[data-rank]{display:none!important}
+      #tbody.low-soop-filter-active[data-low-soop-live-ready="1"] tr[data-rank]{display:none!important}
+      #tbody.low-soop-filter-active[data-low-soop-live-ready="1"] tr[data-rank][data-low-soop-live="1"]{display:table-row!important}
+    `;
+    (doc.head || doc.documentElement).appendChild(style);
+  }
+
   function installLiveSoopFilterFix(win) {
     const doc = win?.document;
     const utils = win?.RankingUtils;
@@ -66,6 +84,7 @@
     const originalFetch = win.fetch;
     if (typeof originalFetch !== 'function') return;
 
+    ensureAuthoritativeStyle(doc);
     const tbody = doc.getElementById('tbody');
     const countNode = doc.getElementById('lowSoopFavoriteCount');
     const lowButton = doc.querySelector('.low-soop-filter-btn');
@@ -77,6 +96,7 @@
     let liveFetchedAt = 0;
     let liveRequest = null;
     let dataReady = false;
+    let loadError = false;
     let applyScheduled = false;
 
     function candidateUserIds(comments) {
@@ -100,10 +120,14 @@
 
     function apply() {
       applyScheduled = false;
-      if (countNode) countNode.textContent = dataReady ? `${verifiedUsers.size}명` : '확인 중…';
+      const status = filterStatusText(dataReady, loadError, verifiedUsers.size);
+      if (countNode && countNode.textContent !== status) countNode.textContent = status;
       if (!tbody) return;
+      tbody.setAttribute('data-low-soop-live-ready', dataReady && !loadError ? '1' : '0');
       for (const row of tbody.querySelectorAll('tr[data-rank]')) {
-        row.setAttribute('data-low-soop', rowMatches(row) ? '1' : '0');
+        const isLow = rowMatches(row);
+        row.setAttribute('data-low-soop-live', isLow ? '1' : '0');
+        row.setAttribute('data-low-soop', isLow ? '1' : '0');
       }
     }
 
@@ -118,6 +142,7 @@
       const verified = resolveVerifiedLowSoopApplicants(latestComments, liveCounts, 500, utils);
       verifiedUsers = new Set(verified.users);
       verifiedKeys = new Set(verified.keys);
+      loadError = false;
       dataReady = true;
       scheduleApply();
     }
@@ -145,6 +170,7 @@
         liveCounts = new Map();
         verifiedUsers = new Set();
         verifiedKeys = new Set();
+        loadError = false;
         dataReady = true;
         scheduleApply();
         return;
@@ -159,6 +185,7 @@
       if (liveRequest) return;
 
       liveSignature = signature;
+      loadError = false;
       dataReady = false;
       scheduleApply();
 
@@ -172,9 +199,10 @@
           liveCounts = new Map();
           verifiedUsers = new Set();
           verifiedKeys = new Set();
-          liveFetchedAt = Date.now();
+          liveFetchedAt = 0;
+          liveSignature = '';
+          loadError = true;
           dataReady = true;
-          if (countNode) countNode.textContent = '확인 실패';
           scheduleApply();
         })
         .finally(() => { liveRequest = null; });
@@ -182,7 +210,7 @@
 
     function onComments(comments) {
       latestComments = Array.isArray(comments) ? comments : [];
-      if (liveFetchedAt > 0) applyVerifiedCounts();
+      if (liveFetchedAt > 0 && !loadError) applyVerifiedCounts();
       refreshLiveCounts(latestComments);
     }
 
@@ -203,6 +231,12 @@
     if (tbody && win.MutationObserver) {
       new win.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
     }
+    if (countNode && win.MutationObserver) {
+      new win.MutationObserver(() => {
+        const expected = filterStatusText(dataReady, loadError, verifiedUsers.size);
+        if (countNode.textContent !== expected) scheduleApply();
+      }).observe(countNode, { childList: true, characterData: true, subtree: true });
+    }
     if (lowButton) lowButton.addEventListener('click', () => scheduleApply());
 
     scheduleApply();
@@ -212,6 +246,7 @@
     LIVE_SOOP_REFRESH_MS,
     SOOP_BATCH_SIZE,
     toCount,
+    filterStatusText,
     isClearlyChzzkOnlyApplicant,
     chunkUserIds,
     resolveVerifiedLowSoopApplicants,
