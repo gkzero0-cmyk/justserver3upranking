@@ -5,7 +5,15 @@ function cleanText(value) {
 const VERIFIED_CHZZK_NAME_CHANNELS = Object.freeze({
   '슈야': 'a046d361cebc40196408424814473562',
   '슈야shuya': 'a046d361cebc40196408424814473562',
-  '또랑이': '1d171cef533bc5c6d33850d4f5c4ecdf'
+  '또랑이': '1d171cef533bc5c6d33850d4f5c4ecdf',
+  '후로기': '332287ba7e39978bd83c125db09cf600',
+  '쑤니s': 'e3b1c8a6af2882052ceda4b225a422c0',
+  '히게': 'de207d7ea717cc73a4ed99d303068d88',
+  '루이luii': '98d01e25e79820a55d261f3baf19f2eb',
+  '이링이': '1cce2792dc894459fcd29c54cea2d4a5',
+  '카오스': '9363010ea9cd1288612eadcd81178477',
+  '카오스_': '9363010ea9cd1288612eadcd81178477',
+  '노리668': '1d694389462927382fbd3b9239792729'
 });
 
 function extractChzzkChannelId(value) {
