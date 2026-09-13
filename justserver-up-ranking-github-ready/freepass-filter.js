@@ -45,6 +45,18 @@
     return commentNo && userId ? `${commentNo}:${userId}` : '';
   }
 
+  function placeFreepassStatCard(stats, card) {
+    if (!stats || !card) return;
+    const autoRefreshCard = Array.from(stats.children || []).find(child =>
+      /자동\s*갱신/iu.test(String(child?.textContent || ''))
+    );
+    if (autoRefreshCard && autoRefreshCard !== card && typeof stats.insertBefore === 'function') {
+      stats.insertBefore(card, autoRefreshCard);
+      return;
+    }
+    if (typeof stats.appendChild === 'function') stats.appendChild(card);
+  }
+
   function install(win) {
     if (!win || !win.document || typeof win.fetch !== 'function' || win.__justserverFreepassFilterInstalled) return;
     win.__justserverFreepassFilterInstalled = true;
@@ -77,8 +89,8 @@
         card.id = 'freepassStat';
         card.className = 'stat';
         card.innerHTML = '<div class="k">프리패스 신청자</div><div class="v" id="freepassCount">0명</div>';
-        stats.appendChild(card);
       }
+      placeFreepassStatCard(stats, card);
       return card;
     }
 
@@ -180,5 +192,5 @@
     scheduleApply();
   }
 
-  return { normalizeCommentText, normalizeForFreepassMatch, isFreepassUseComment, freepassKey, install };
+  return { normalizeCommentText, normalizeForFreepassMatch, isFreepassUseComment, freepassKey, placeFreepassStatCard, install };
 });
