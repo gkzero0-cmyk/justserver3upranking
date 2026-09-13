@@ -2,6 +2,12 @@ function cleanText(value) {
   return String(value ?? '').normalize('NFKC').trim();
 }
 
+const VERIFIED_CHZZK_NAME_CHANNELS = Object.freeze({
+  '슈야': 'a046d361cebc40196408424814473562',
+  '슈야shuya': 'a046d361cebc40196408424814473562',
+  '또랑이': '1d171cef533bc5c6d33850d4f5c4ecdf'
+});
+
 function extractChzzkChannelId(value) {
   const match = cleanText(value).match(/https?:\/\/(?:m\.)?chzzk\.naver\.com\/(?:live\/)?([A-Za-z0-9_-]+)/i);
   return match ? match[1] : '';
@@ -9,6 +15,11 @@ function extractChzzkChannelId(value) {
 
 function normalizeChzzkChannelName(value) {
   return cleanText(value).toLocaleLowerCase('ko-KR').replace(/\s+/g, '');
+}
+
+function getVerifiedChzzkChannelId(name) {
+  const normalized = normalizeChzzkChannelName(name);
+  return VERIFIED_CHZZK_NAME_CHANNELS[normalized] || '';
 }
 
 function channelRows(payload) {
@@ -47,8 +58,10 @@ function buildChzzkStationUrl(channelId) {
 }
 
 module.exports = {
+  VERIFIED_CHZZK_NAME_CHANNELS,
   extractChzzkChannelId,
   normalizeChzzkChannelName,
+  getVerifiedChzzkChannelId,
   pickExactChzzkChannel,
   parseChzzkChannel,
   buildChzzkStationUrl

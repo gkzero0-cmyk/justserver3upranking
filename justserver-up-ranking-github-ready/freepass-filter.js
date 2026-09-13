@@ -15,9 +15,20 @@
   function isFreepassUseComment(value) {
     const text = normalizeCommentText(value);
     if (!/프리\s*패스/iu.test(text)) return false;
-    const denied = /프리\s*패스\s*권?\s*(?:을|를|은|는)?\s*(?:사용\s*(?:안|않|하지)|안\s*(?:쓰|쓸|사용)|쓰지\s*않|사용하지\s*않|없이|제외|미사용)/iu;
-    if (denied.test(text)) return false;
-    return /프리\s*패스\s*권?\s*(?:을|를|은|는)?\s*(?:사용\s*(?:합니다|하겠습니다|할\s*게요)|쓰겠습니다|씁니다|쓸\s*게요)/iu.test(text);
+
+    const denied = [
+      /프리\s*패스\s*권?.{0,24}(?:사용\s*(?:안|않|하지)|안\s*(?:쓰|쓸|사용)|쓰지\s*않|사용하지\s*않|없이|제외|미사용)/iu,
+      /(?:안|않|없이|제외|미사용).{0,18}프리\s*패스/iu,
+      /(?:친구|지인|타인|다른\s*(?:사람|분)|누가).{0,24}프리\s*패스.{0,24}(?:사용|쓰|쓸|씁|씀|썼|적용)/iu,
+      /프리\s*패스\s*권?.{0,18}(?:사용\s*여부|가능\s*여부|되나요|가능한가|있나요)/iu
+    ];
+    if (denied.some(pattern => pattern.test(text))) return false;
+
+    const positive = [
+      /프리\s*패스\s*권?.{0,24}(?:사용|쓰|쓸|씁|씀|썼|적용)/iu,
+      /프리\s*패스\s*(?:권)?\s*(?:으)?로.{0,20}(?:신청|참여)/iu
+    ];
+    return positive.some(pattern => pattern.test(text));
   }
 
   function freepassKey(item) {

@@ -1,6 +1,7 @@
 const {
   extractChzzkChannelId,
   normalizeChzzkChannelName,
+  getVerifiedChzzkChannelId,
   pickExactChzzkChannel,
   parseChzzkChannel,
   buildChzzkStationUrl
@@ -61,6 +62,16 @@ function resultPayload(channel, source) {
   };
 }
 
+async function fetchChannelById(channelId, source, cachePrefix = 'id') {
+  const key = `${cachePrefix}:${channelId}`;
+  const hit = cached(key);
+  if (hit) return hit;
+  const payload = await fetchJson(`${CHZZK_API}/channels/${encodeURIComponent(channelId)}`);
+  const result = resultPayload(parseChzzkChannel(payload), source);
+  remember(key, result);
+  return result;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -74,17 +85,19 @@ module.exports = async function handler(req, res) {
   try {
     const channelId = extractChzzkChannelId(channelUrl);
     if (channelId) {
-      const key = `id:${channelId}`;
-      const hit = cached(key);
-      if (hit) return res.status(200).json(hit);
-      const payload = await fetchJson(`${CHZZK_API}/channels/${encodeURIComponent(channelId)}`);
-      const result = resultPayload(parseChzzkChannel(payload), 'comment-url');
-      remember(key, result);
+      const result = await fetchChannelById(channelId, 'comment-url');
       return res.status(200).json(result);
     }
 
     const normalizedName = normalizeChzzkChannelName(name);
     if (!normalizedName) return res.status(200).json({ ok: true, matched: false, source: 'exact-name-search' });
+
+    const verifiedChannelId = getVerifiedChzzkChannelId(name);
+    if (verifiedChannelId) {
+      const result = await fetchChannelById(verifiedChannelId, 'verified-name-override', 'verified');
+      return res.status(200).json(result);
+    }
+
     const key = `name:${normalizedName}`;
     const hit = cached(key);
     if (hit) return res.status(200).json(hit);

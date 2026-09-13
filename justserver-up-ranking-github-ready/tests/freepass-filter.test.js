@@ -14,7 +14,19 @@ test('classifies explicit first-person freepass usage phrases', () => {
   for (const text of yes) assert.equal(isFreepassUseComment(text), true, text);
 });
 
-test('does not classify negation, exclusion, or mere mentions', () => {
+test('classifies usage when punctuation, emoji or application wording separates the phrase', () => {
+  const yes = [
+    '프리패스권 : 사용합니다!',
+    '프리패스권💜 사용하겠습니다',
+    '프리패스권 / 사용할게요',
+    '프리패스권 - 쓰겠습니다',
+    '프리패스로 신청합니다',
+    '입주비 동의 / 프리패스권✨사용할 예정입니다'
+  ];
+  for (const text of yes) assert.equal(isFreepassUseComment(text), true, text);
+});
+
+test('does not classify negation, exclusion, questions, or third-person mentions', () => {
   const no = [
     '프리패스 사용 안 합니다',
     '프리패스권은 사용하지 않겠습니다',
@@ -22,7 +34,9 @@ test('does not classify negation, exclusion, or mere mentions', () => {
     '프리패스 제외 부탁드립니다',
     '프리패스가 있으면 좋겠네요',
     '친구가 프리패스 사용한다고 했습니다',
-    '프리패스권 보유중'
+    '프리패스권 보유중',
+    '프리패스권 사용 여부 문의드립니다',
+    '프리패스 사용 가능한가요?'
   ];
   for (const text of no) assert.equal(isFreepassUseComment(text), false, text);
 });

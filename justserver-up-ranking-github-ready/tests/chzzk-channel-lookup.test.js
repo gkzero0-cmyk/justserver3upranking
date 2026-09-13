@@ -18,6 +18,14 @@ test('extracts channel ids from normal, mobile and live CHZZK URLs', () => {
   assert.equal(extractChzzkChannelId(`https://chzzk.naver.com/live/${id}`), id);
 });
 
+test('uses verified channel ids for manually confirmed duplicate-name applicants', () => {
+  const { getVerifiedChzzkChannelId } = loadHelper();
+  assert.equal(getVerifiedChzzkChannelId('슈야'), 'a046d361cebc40196408424814473562');
+  assert.equal(getVerifiedChzzkChannelId('슈야 SHUYA'), 'a046d361cebc40196408424814473562');
+  assert.equal(getVerifiedChzzkChannelId('또랑이'), '1d171cef533bc5c6d33850d4f5c4ecdf');
+  assert.equal(getVerifiedChzzkChannelId('데로DeRo'), '');
+});
+
 test('prefers a direct exact channel-name match over similar search results', () => {
   const { pickExactChzzkChannel } = loadHelper();
   const payload = {
