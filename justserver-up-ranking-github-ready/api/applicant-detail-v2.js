@@ -1,4 +1,5 @@
 const { formatApplicationDetail, normalizeFanCount } = require('../applicant-detail-utils.js');
+const { repairStructuredDetail } = require('../applicant-detail-v2-normalizer.js');
 
 const CHANNEL_ID = 'chunbongtv';
 const POST_ID = '204274449';
@@ -163,7 +164,7 @@ async function handler(req, res) {
       station = await fetchStation(actualUserId).catch(() => null);
     }
 
-    const detail = formatApplicationDetail(raw, station);
+    const detail = repairStructuredDetail(formatApplicationDetail(raw, station));
     const sanitizedName = sanitizeV2Name(detail);
     if (sanitizedName) detail.name = sanitizedName;
     const finalUserId = detail.userId || actualUserId;
