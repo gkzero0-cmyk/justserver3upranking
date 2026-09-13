@@ -13,6 +13,7 @@
 
   function stripChzzkTag(value) {
     return cleanText(value)
+      .replace(/[\u200B\u2060\uFEFF]/g, '')
       .replace(/https?:\/\/(?:m\.)?chzzk\.naver\.com\/(?:live\/)?[A-Za-z0-9_-]+(?:[/?#][^\s]*)?/gi, ' ')
       .replace(/\[\s*(?:치지직|chzzk)(?:\s*[/:：-]?\s*[0-9][0-9,.]*(?:만|천)?\s*명?)?\s*\]/giu, ' ')
       .replace(/\(\s*(?:치지직|chzzk)[^)]*\)/giu, ' ')
