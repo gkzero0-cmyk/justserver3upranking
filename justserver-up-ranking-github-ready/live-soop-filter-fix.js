@@ -5,6 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   const LIVE_SOOP_REFRESH_MS = 60 * 1000;
   const SOOP_BATCH_SIZE = 120;
+  const VERIFIED_DUAL_PLATFORM_SOOP_USERS = new Set(['h66rogi']);
 
   function toCount(value) {
     if (value === null || value === undefined || value === '') return null;
@@ -27,6 +28,8 @@
   }
 
   function isClearlyChzzkOnlyApplicant(item) {
+    const userId = String(item?.userId || '').trim().toLowerCase();
+    if (VERIFIED_DUAL_PLATFORM_SOOP_USERS.has(userId)) return false;
     const text = commentText(item);
     if (!text) return false;
     if (hasExplicitSoopCount(text)) return false;
