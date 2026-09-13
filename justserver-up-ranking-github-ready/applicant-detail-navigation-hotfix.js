@@ -55,17 +55,29 @@
     const style = document.createElement('style');
     style.id = 'applicantDetailNavigationHotfixStyle';
     style.textContent = `
-      .detail-nav{position:absolute;z-index:4;top:50%;transform:translateY(-50%);max-width:180px;min-width:48px;height:44px;padding:0 12px;border:1px solid #35435e;border-radius:11px;background:#171e2b;color:#d8e2f6;font-weight:850;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-      .detail-nav:hover:not(:disabled){border-color:#637eb4;background:#202a3c;color:#fff}.detail-nav:disabled{opacity:.28;cursor:not-allowed}.detail-nav-prev{left:14px}.detail-nav-next{right:62px}
-      @media(max-width:820px){.detail-nav{top:18px;transform:none;height:36px;max-width:132px;font-size:11px}.detail-nav-prev{left:10px}.detail-nav-next{right:56px}}
+      .detail-nav-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 0 16px;min-width:0}
+      .detail-nav{position:static;z-index:auto;transform:none;flex:0 1 220px;max-width:46%;min-width:0;height:40px;padding:0 12px;border:1px solid #35435e;border-radius:11px;background:#171e2b;color:#d8e2f6;font-weight:850;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 22px rgba(0,0,0,.18)}
+      .detail-nav:hover:not(:disabled){border-color:#637eb4;background:#202a3c;color:#fff}.detail-nav:disabled{opacity:.28;cursor:not-allowed}.detail-nav-prev{text-align:left}.detail-nav-next{text-align:right;margin-left:auto}
+      @media(max-width:820px){.detail-nav-row{gap:8px;margin:0 0 14px}.detail-nav{height:38px;max-width:48%;padding:0 10px;font-size:11px}}
     `;
     document.head.appendChild(style);
   }
 
   function ensureButtons() {
     const dialog = document.querySelector('#applicantDetailModal .detail-dialog');
-    if (!dialog) return null;
+    const content = dialog?.querySelector('.detail-content');
+    const grid = content?.querySelector('.detail-grid');
+    if (!dialog || !content || !grid) return null;
     ensureStyle();
+
+    let row = content.querySelector('.detail-nav-row');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'detail-nav-row';
+      row.setAttribute('aria-label', '신청자 상세 이동');
+      content.insertBefore(row, grid);
+    }
+
     let prev = dialog.querySelector('[data-detail-nav="-1"]');
     let next = dialog.querySelector('[data-detail-nav="1"]');
     if (!prev) {
@@ -74,7 +86,6 @@
       prev.className = 'detail-nav detail-nav-prev';
       prev.dataset.detailNav = '-1';
       prev.setAttribute('aria-label', '이전 신청자 상세 보기');
-      dialog.appendChild(prev);
     }
     if (!next) {
       next = document.createElement('button');
@@ -82,8 +93,9 @@
       next.className = 'detail-nav detail-nav-next';
       next.dataset.detailNav = '1';
       next.setAttribute('aria-label', '다음 신청자 상세 보기');
-      dialog.appendChild(next);
     }
+    if (prev.parentNode !== row) row.appendChild(prev);
+    if (next.parentNode !== row) row.appendChild(next);
     return { prev, next };
   }
 

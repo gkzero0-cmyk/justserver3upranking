@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 let navigation;
 try {
@@ -7,6 +9,8 @@ try {
 } catch (error) {
   navigation = null;
 }
+
+const source = fs.readFileSync(path.join(__dirname, '..', 'applicant-detail-navigation-hotfix.js'), 'utf8');
 
 test('moves to previous and next applicant in current visible order', () => {
   assert.ok(navigation, 'navigation hotfix module must exist');
@@ -29,4 +33,12 @@ test('navigation stops at the edges of the currently filtered list', () => {
   assert.equal(navigation.findNeighbor(filtered, '2:b', -1), null);
   assert.equal(navigation.findNeighbor(filtered, '2:b', 1)?.name, '사과몽');
   assert.equal(navigation.findNeighbor(filtered, '4:d', 1), null);
+});
+
+test('detail navigation uses an in-flow row instead of overlaying modal content', () => {
+  assert.match(source, /detail-nav-row/);
+  assert.doesNotMatch(source, /\.detail-nav\s*\{[^}]*position:absolute/s);
+  assert.match(source, /content\.insertBefore\(row, grid\)/);
+  assert.match(source, /prev\.parentNode !== row/);
+  assert.match(source, /next\.parentNode !== row/);
 });
