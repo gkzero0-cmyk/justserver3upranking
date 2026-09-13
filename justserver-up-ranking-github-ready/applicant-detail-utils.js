@@ -13,13 +13,13 @@
 
   function stripChzzkTag(value) {
     return cleanText(value)
-      .replace(/[\u200B\u2060\uFEFF]/g, '')
+      .replace(/\p{Cf}/gu, '')
       .replace(/https?:\/\/(?:m\.)?chzzk\.naver\.com\/(?:live\/)?[A-Za-z0-9_-]+(?:[/?#][^\s]*)?/gi, ' ')
       .replace(/\[\s*(?:치지직|chzzk)(?:\s*[/:：-]?\s*[0-9][0-9,.]*(?:만|천)?\s*명?)?\s*\]/giu, ' ')
       .replace(/\(\s*(?:치지직|chzzk)[^)]*\)/giu, ' ')
       .replace(/^\s*(?:\[\s*(?:치지직|chzzk)\s*\]|\(\s*(?:치지직|chzzk)\s*\))\s*/iu, '')
       .replace(/\s*(?:\[\s*(?:치지직|chzzk)\s*\]|\(\s*(?:치지직|chzzk)\s*\))\s*$/iu, '')
-      .replace(/\s*(?:>>|>|→|➡)+\s*$/u, '')
+      .replace(/[\s\p{Zs}]*(?:[>＞≫›»→➡➜➤]+)[\s\p{Zs}]*$/gu, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
   }
@@ -271,9 +271,11 @@
         : declaredFanCount !== null
           ? 'application'
           : 'unknown';
+    const resolvedName = parsed.name || stationNick || userNick || userId || '정보 없음';
+    const finalName = chzzkApplication ? (stripChzzkTag(resolvedName) || resolvedName) : resolvedName;
 
     return {
-      name: parsed.name || stationNick || userNick || userId || '정보 없음',
+      name: finalName,
       userId,
       commentNo: cleanText(raw.p_comment_no || raw.comment_no || raw.commentNo || raw.comment_id || raw.commentId),
       fanCount,
