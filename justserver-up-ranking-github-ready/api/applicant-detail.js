@@ -42,6 +42,18 @@ function rawFromRequest(req, commentNo, userId) {
   return requestRawComment(req, commentNo, userId);
 }
 
+function sanitizeChzzkDetailName(detail) {
+  const originalName = String(detail?.name || '').replace(/\p{Cf}/gu, '').trim();
+  if (!originalName) return '';
+  const originalComment = String(detail?.originalComment || '');
+  const isChzzk = Boolean(String(detail?.chzzkStationUrl || '').trim() || /치지직|chzzk|옆동네/iu.test(originalComment));
+  if (!isChzzk) return originalName;
+  const cleaned = originalName
+    .replace(/[\s\p{Zs}]*(?:[>＞≫›»→➡➜➤]+)[\s\p{Zs}]*$/gu, '')
+    .trim();
+  return cleaned || originalName;
+}
+
 async function fetchJson(url, referer) {
   const options = {
     headers: {
@@ -151,6 +163,8 @@ async function handler(req, res) {
     }
 
     const detail = formatApplicationDetail(raw, station);
+    const sanitizedName = sanitizeChzzkDetailName(detail);
+    if (sanitizedName) detail.name = sanitizedName;
     const finalUserId = detail.userId || actualUserId;
     const payload = {
       ok: true,
@@ -176,4 +190,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { requestRawComment, rawFromRequest, rawCommentNo, rawUserId };
+module.exports._test = { requestRawComment, rawFromRequest, rawCommentNo, rawUserId, sanitizeChzzkDetailName };
