@@ -12,6 +12,11 @@ function queryValue(req, name) {
   return String(Array.isArray(value) ? value[0] : value || '').trim();
 }
 
+function bodyValue(req, name) {
+  const value = req?.body?.[name];
+  return String(Array.isArray(value) ? value[0] : value || '').trim();
+}
+
 function rawCommentNo(raw) {
   return String(raw?.p_comment_no ?? raw?.comment_no ?? raw?.commentNo ?? raw?.comment_id ?? raw?.commentId ?? '').trim();
 }
@@ -20,8 +25,25 @@ function rawUserId(raw) {
   return String(raw?.user_id ?? raw?.userId ?? raw?.writer_id ?? raw?.writerId ?? '').trim();
 }
 
+function requestRawComment(req, commentNo, userId) {
+  const applicationComment = bodyValue(req, 'applicationComment');
+  if (!applicationComment || applicationComment.length > 30000) return null;
+  const bodyCommentNo = bodyValue(req, 'commentNo');
+  const bodyUserId = bodyValue(req, 'userId');
+  if (bodyCommentNo && bodyCommentNo !== commentNo) return null;
+  if (bodyUserId && bodyUserId.toLowerCase() !== userId.toLowerCase()) return null;
+  const userNick = bodyValue(req, 'userNick').slice(0, 200);
+  const requestedPhotoUrl = bodyValue(req, 'photoUrl').slice(0, 2000);
+  const photoUrl = /^https?:\/\//i.test(requestedPhotoUrl) ? requestedPhotoUrl : '';
+  return { commentNo, userId, userNick, comment: applicationComment, photo: photoUrl };
+}
+
+function rawFromRequest(req, commentNo, userId) {
+  return requestRawComment(req, commentNo, userId);
+}
+
 async function fetchJson(url, referer) {
-  const response = await fetch(url, {
+  const options = {
     headers: {
       accept: 'application/json, text/plain, */*',
       'accept-language': 'ko-KR,ko;q=0.9,en;q=0.8',
@@ -29,7 +51,11 @@ async function fetchJson(url, referer) {
       'user-agent': 'Mozilla/5.0 (compatible; JustServerApplicantDetail/1.0)'
     },
     cache: 'no-store'
-  });
+  };
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    options.signal = AbortSignal.timeout(8000);
+  }
+  const response = await fetch(url, options);
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new Error(`upstream ${response.status}: ${body.slice(0, 120)}`);
@@ -98,12 +124,12 @@ function putCached(key, payload, now) {
   }
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const commentNo = queryValue(req, 'commentNo');
-  const userId = queryValue(req, 'userId');
+  const commentNo = queryValue(req, 'commentNo') || bodyValue(req, 'commentNo');
+  const userId = queryValue(req, 'userId') || bodyValue(req, 'userId');
   if (!/^\d{1,20}$/.test(commentNo) || !/^[A-Za-z0-9._-]{1,80}$/.test(userId)) {
     return res.status(400).json({ ok: false, error: '유효한 신청 댓글 번호와 방송국 아이디가 필요합니다.' });
   }
@@ -115,7 +141,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const stationPromise = fetchStation(userId).catch(() => null);
-    const raw = await findComment(commentNo);
+    const raw = rawFromRequest(req, commentNo, userId) || await findComment(commentNo);
     if (!raw) return res.status(404).json({ ok: false, error: '신청 댓글을 찾지 못했습니다.' });
 
     const actualUserId = rawUserId(raw) || userId;
@@ -147,4 +173,7 @@ module.exports = async function handler(req, res) {
       fetchedAt: new Date().toISOString()
     });
   }
-};
+}
+
+module.exports = handler;
+module.exports._test = { requestRawComment, rawFromRequest, rawCommentNo, rawUserId };

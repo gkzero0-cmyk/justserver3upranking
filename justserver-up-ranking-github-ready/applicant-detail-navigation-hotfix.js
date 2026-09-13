@@ -35,11 +35,30 @@
 
   const state = {
     currentKey: '',
-    latestDetail: null
+    latestDetail: null,
+    snapshotItems: [],
+    preserveSnapshotOnce: false,
+    commentDetails: new Map()
   };
 
   function modalIsOpen() {
     return document.getElementById('applicantDetailModal')?.classList.contains('open');
+  }
+
+  function itemFromRow(row) {
+    if (!row) return null;
+    const trigger = row.querySelector('.detail-trigger[data-detail-comment][data-detail-user]');
+    if (!trigger) return null;
+    const commentNo = String(trigger.dataset.detailComment || '').trim();
+    const userId = String(trigger.dataset.detailUser || '').trim();
+    const key = api.detailKey(commentNo, userId);
+    if (!key) return null;
+    const name = String(row.querySelector('.nick')?.textContent || userId || '신청자').trim();
+    const cached = state.commentDetails.get(key) || null;
+    const applicationComment = String(cached?.comment || row.querySelector('.detail-comment-trigger')?.textContent || '').trim();
+    const userNick = String(cached?.userNick || name).trim();
+    const photoUrl = String(cached?.photoUrl || '').trim();
+    return { key, name, userNick, commentNo, userId, applicationComment, photoUrl, trigger };
   }
 
   function visibleItems() {
@@ -47,18 +66,38 @@
     const items = [];
     document.querySelectorAll('#tbody tr').forEach(row => {
       if (!api.isVisibleRow(row)) return;
-      const trigger = row.querySelector('.detail-trigger[data-detail-comment][data-detail-user]');
-      if (!trigger) return;
-      const key = api.detailKey(trigger.dataset.detailComment, trigger.dataset.detailUser);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
-      items.push({
-        key,
-        name: String(row.querySelector('.nick')?.textContent || trigger.dataset.detailUser || '신청자').trim(),
-        trigger
-      });
+      const item = itemFromRow(row);
+      if (!item || seen.has(item.key)) return;
+      seen.add(item.key);
+      items.push(item);
     });
     return items;
+  }
+
+  function activeItems() {
+    return state.snapshotItems.length ? state.snapshotItems : visibleItems();
+  }
+
+  function cacheCommentDetails(comments) {
+    const next = new Map();
+    for (const item of comments || []) {
+      const key = api.detailKey(item?.commentNo, item?.userId);
+      if (!key || key === ':') continue;
+      next.set(key, {
+        userNick: String(item?.userNick || '').trim(),
+        comment: String(item?.comment || '').trim(),
+        photoUrl: String(item?.photoUrl || '').trim()
+      });
+    }
+    state.commentDetails = next;
+  }
+
+  function findLiveTrigger(key) {
+    for (const row of document.querySelectorAll('#tbody tr')) {
+      const item = itemFromRow(row);
+      if (item?.key === key) return item.trigger;
+    }
+    return null;
   }
 
   function ensureStyle() {
@@ -113,9 +152,9 @@
   function syncNavigation() {
     const buttons = ensureButtons();
     if (!buttons) return;
-    const items = visibleItems();
-    const prevItem = api.findNeighbor(items, state.currentKey, -1);
-    const nextItem = api.findNeighbor(items, state.currentKey, 1);
+    const items = activeItems();
+    const prevItem = api.findNeighbor(state.snapshotItems.length ? state.snapshotItems : items, state.currentKey, -1);
+    const nextItem = api.findNeighbor(state.snapshotItems.length ? state.snapshotItems : items, state.currentKey, 1);
     const prevText = prevItem ? `← ${prevItem.name}` : '←';
     const nextText = nextItem ? `${nextItem.name} →` : '→';
     const prevTitle = prevItem ? `이전: ${prevItem.name}` : '이전 신청자 없음';
@@ -133,10 +172,7 @@
     if (!links) return;
     const existing = links.querySelector('[data-chzzk-station-link]');
     const url = String(state.latestDetail?.chzzkStationUrl || '').trim();
-    if (!/^https:\/\/chzzk\.naver\.com\/[A-Za-z0-9_-]+$/i.test(url)) {
-      existing?.remove();
-      return;
-    }
+    if (!/^https:\/\/chzzk\.naver\.com\/[A-Za-z0-9_-]+$/i.test(url)) return;
     if (existing && existing.href === url) return;
     if (existing) existing.remove();
     const anchor = document.createElement('a');
@@ -151,21 +187,65 @@
   }
 
   function navigate(direction) {
-    const target = api.findNeighbor(visibleItems(), state.currentKey, direction);
-    if (!target?.trigger) return;
-    target.trigger.click();
+    const target = api.findNeighbor(state.snapshotItems.length ? state.snapshotItems : visibleItems(), state.currentKey, direction);
+    if (!target) return;
+    const trigger = findLiveTrigger(target.key) || (target.trigger?.isConnected ? target.trigger : null);
+    if (!trigger) return;
+    state.preserveSnapshotOnce = true;
+    trigger.click();
+  }
+
+  function detailRequestItem(rawUrl) {
+    try {
+      const url = new URL(String(rawUrl), location.href);
+      const key = api.detailKey(url.searchParams.get('commentNo'), url.searchParams.get('userId'));
+      return activeItems().find(item => item.key === key) || null;
+    } catch {
+      return null;
+    }
   }
 
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
-    const response = await nativeFetch(...args);
     const rawUrl = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+    let fetchArgs = args;
+    let requestItem = null;
+    if (String(rawUrl).includes('/api/applicant-detail')) {
+      requestItem = detailRequestItem(rawUrl);
+      if (requestItem?.applicationComment) {
+        const options = { ...(args[1] || {}), method: 'POST' };
+        const headers = new Headers(options.headers || {});
+        headers.set('content-type', 'application/json');
+        options.headers = headers;
+        options.body = JSON.stringify({
+          commentNo: requestItem.commentNo,
+          userId: requestItem.userId,
+          userNick: requestItem.userNick,
+          applicationComment: requestItem.applicationComment,
+          photoUrl: requestItem.photoUrl || ''
+        });
+        fetchArgs = [args[0], options];
+      }
+    }
+
+    const response = await nativeFetch(...fetchArgs);
+    if (String(rawUrl).includes('/api/comments')) {
+      try {
+        const data = await response.clone().json();
+        if (Array.isArray(data?.comments)) cacheCommentDetails(data.comments);
+      } catch {}
+    }
     if (String(rawUrl).includes('/api/applicant-detail')) {
       response.clone().json().then(data => {
         if (!data?.ok) return;
         state.latestDetail = data;
-        const url = new URL(String(rawUrl), location.href);
-        state.currentKey = api.detailKey(url.searchParams.get('commentNo') || data.commentNo, url.searchParams.get('userId') || data.userId);
+        let requestKey = requestItem?.key || '';
+        if (!requestKey) {
+          const url = new URL(String(rawUrl), location.href);
+          requestKey = api.detailKey(url.searchParams.get('commentNo') || data.commentNo, url.searchParams.get('userId') || data.userId);
+        }
+        if (!state.snapshotItems.some(item => item.key === requestKey)) state.snapshotItems = visibleItems();
+        state.currentKey = requestKey;
         queueMicrotask(() => {
           applyChzzkLink();
           syncNavigation();
@@ -179,6 +259,8 @@
     const detailTrigger = event.target.closest('#tbody .detail-trigger[data-detail-comment][data-detail-user]');
     if (detailTrigger) {
       state.currentKey = api.detailKey(detailTrigger.dataset.detailComment, detailTrigger.dataset.detailUser);
+      if (state.preserveSnapshotOnce) state.preserveSnapshotOnce = false;
+      else state.snapshotItems = visibleItems();
       state.latestDetail = null;
       queueMicrotask(syncNavigation);
       return;

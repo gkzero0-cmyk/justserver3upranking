@@ -1,3 +1,4 @@
+const { normalizePhotoUrl } = require('../applicant-detail-utils.js');
 const CHANNEL_ID = 'chunbongtv';
 const POST_ID = '204274449';
 const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID}/comment`;
@@ -53,7 +54,6 @@ function extractUp(raw) {
     if (n !== null) return n;
   }
 
-  // SOOP may rename the field. Prefer numeric keys whose names clearly mean UP/recommend/like.
   const candidates = deepEntries(raw)
     .map(([path, value]) => ({ path, value: toNumber(value) }))
     .filter(x => x.value !== null)
@@ -83,6 +83,7 @@ function normalize(raw) {
     'comment_url','commentUrl','link_url','linkUrl','url'
   ]) || '').trim();
   const commentUrl = explicitCommentUrl || (commentNo ? `${POST_URL}#comment_noti${encodeURIComponent(commentNo)}` : POST_URL);
+  const photoUrl = normalizePhotoUrl(raw.photo || raw.attachment || raw.image || null);
 
   return {
     commentNo,
@@ -90,6 +91,7 @@ function normalize(raw) {
     userId,
     userNick,
     comment,
+    photoUrl,
     regDate,
     up: extractUp(raw)
   };
@@ -125,7 +127,6 @@ async function buildPayload() {
     const maxPages = Math.min(lastPage, 200);
 
     const restPages = [];
-    // Fetch in small batches to avoid hammering SOOP while keeping refresh fast.
     for (let start = 2; start <= maxPages; start += 8) {
       const batch = [];
       for (let p = start; p < start + 8 && p <= maxPages; p++) batch.push(fetchPage(p));
@@ -136,7 +137,6 @@ async function buildPayload() {
     const raw = firstData.concat(...restPages.map(x => Array.isArray(x?.data) ? x.data : []));
     const comments = raw.map(normalize).filter(x => x.userId || x.userNick || x.comment);
 
-    // Keep one row per top-level comment. If duplicate API rows exist, retain the newest snapshot.
     const seen = new Map();
     comments.forEach((item, index) => {
       const key = item.commentNo || `${item.userId}:${item.regDate}:${index}`;

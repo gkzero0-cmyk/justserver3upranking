@@ -4,11 +4,36 @@
   if (root && root.document) api.installLiveSoopFilterFix(root);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (root) {
   const LIVE_SOOP_REFRESH_MS = 60 * 1000;
+  const SOOP_BATCH_SIZE = 120;
 
   function toCount(value) {
     if (value === null || value === undefined || value === '') return null;
     const number = Number(value);
     return Number.isFinite(number) && number >= 0 ? Math.round(number) : null;
+  }
+
+  function commentText(item) {
+    return String(item?.comment || '').replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+  }
+
+  function hasExplicitSoopCount(text) {
+    return /(?:SOOP|숲|아프리카(?:TV)?)(?:\s*(?:애청자|즐겨찾기|즐찾|팔로워?|팔로우|팬)(?:\s*수)?)?\s*[:：-]?\s*[0-9]/iu.test(text);
+  }
+
+  function isClearlyChzzkOnlyApplicant(item) {
+    const text = commentText(item);
+    if (!text) return false;
+    if (hasExplicitSoopCount(text)) return false;
+    return /치지직|chzzk|옆동네/iu.test(text);
+  }
+
+  function chunkUserIds(userIds, size = SOOP_BATCH_SIZE) {
+    const limit = Math.max(1, Number(size) || SOOP_BATCH_SIZE);
+    const chunks = [];
+    for (let index = 0; index < (userIds || []).length; index += limit) {
+      chunks.push(userIds.slice(index, index + limit));
+    }
+    return chunks;
   }
 
   function resolveVerifiedLowSoopApplicants(comments, liveCounts, limit = 500, utils) {
@@ -19,7 +44,7 @@
     if (!Number.isFinite(max) || max < 0 || !utils) return { users: [], keys: [] };
 
     for (const item of comments || []) {
-      if (!utils.isLowSoopFavoriteApplicant(item, max)) continue;
+      if (isClearlyChzzkOnlyApplicant(item)) continue;
       const userId = String(item?.userId || '').trim();
       if (!userId || !counts.has(userId)) continue;
       const current = toCount(counts.get(userId));
@@ -35,7 +60,7 @@
     const doc = win?.document;
     const utils = win?.RankingUtils;
     if (!doc || !utils || win.__justserverLiveSoopFilterFixInstalled) return;
-    if (typeof utils.isLowSoopFavoriteApplicant !== 'function' || typeof utils.favoriteKey !== 'function') return;
+    if (typeof utils.favoriteKey !== 'function') return;
 
     win.__justserverLiveSoopFilterFixInstalled = true;
     const originalFetch = win.fetch;
@@ -43,6 +68,7 @@
 
     const tbody = doc.getElementById('tbody');
     const countNode = doc.getElementById('lowSoopFavoriteCount');
+    const lowButton = doc.querySelector('.low-soop-filter-btn');
     let latestComments = [];
     let liveCounts = new Map();
     let verifiedUsers = new Set();
@@ -56,7 +82,7 @@
     function candidateUserIds(comments) {
       const users = new Set();
       for (const item of comments || []) {
-        if (!utils.isLowSoopFavoriteApplicant(item, 500)) continue;
+        if (isClearlyChzzkOnlyApplicant(item)) continue;
         const userId = String(item?.userId || '').trim();
         if (userId) users.add(userId);
       }
@@ -96,6 +122,23 @@
       scheduleApply();
     }
 
+    async function fetchCountChunks(userIds) {
+      const merged = {};
+      for (const chunk of chunkUserIds(userIds)) {
+        const response = await originalFetch.call(win, '/api/soop-favorite-counts', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ userIds: chunk }),
+          cache: 'no-store'
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!data?.ok || !data.counts || typeof data.counts !== 'object') throw new Error('invalid response');
+        Object.assign(merged, data.counts);
+      }
+      return merged;
+    }
+
     async function refreshLiveCounts(comments) {
       const userIds = candidateUserIds(comments);
       if (!userIds.length) {
@@ -119,16 +162,9 @@
       dataReady = false;
       scheduleApply();
 
-      liveRequest = originalFetch.call(win, '/api/soop-favorite-counts', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userIds }),
-        cache: 'no-store'
-      })
-        .then(response => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
-        .then(data => {
-          if (!data?.ok || !data.counts || typeof data.counts !== 'object') throw new Error('invalid response');
-          liveCounts = new Map(Object.entries(data.counts));
+      liveRequest = fetchCountChunks(userIds)
+        .then(counts => {
+          liveCounts = new Map(Object.entries(counts));
           liveFetchedAt = Date.now();
           applyVerifiedCounts();
         })
@@ -167,9 +203,18 @@
     if (tbody && win.MutationObserver) {
       new win.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
     }
+    if (lowButton) lowButton.addEventListener('click', () => scheduleApply());
 
     scheduleApply();
   }
 
-  return { LIVE_SOOP_REFRESH_MS, toCount, resolveVerifiedLowSoopApplicants, installLiveSoopFilterFix };
+  return {
+    LIVE_SOOP_REFRESH_MS,
+    SOOP_BATCH_SIZE,
+    toCount,
+    isClearlyChzzkOnlyApplicant,
+    chunkUserIds,
+    resolveVerifiedLowSoopApplicants,
+    installLiveSoopFilterFix
+  };
 });
