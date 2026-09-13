@@ -91,7 +91,7 @@ module.exports = async function handler(req, res) {
 
     const searchUrl = new URL(`${CHZZK_API}/search/channels`);
     searchUrl.searchParams.set('keyword', name);
-    searchUrl.searchParams.set('size', '10');
+    searchUrl.searchParams.set('size', '50');
     const searchPayload = await fetchJson(searchUrl.toString());
     const exact = pickExactChzzkChannel(searchPayload, name);
     if (!exact) {

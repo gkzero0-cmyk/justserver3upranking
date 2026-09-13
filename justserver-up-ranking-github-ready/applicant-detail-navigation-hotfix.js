@@ -7,6 +7,16 @@
     return `${String(commentNo || '').trim()}:${String(userId || '').trim().toLowerCase()}`;
   }
 
+  function isVisibleRow(row) {
+    if (!row || row.hidden) return false;
+    const view = row.ownerDocument?.defaultView;
+    if (view && typeof view.getComputedStyle === 'function') {
+      const style = view.getComputedStyle(row);
+      if (style?.display === 'none' || style?.visibility === 'hidden') return false;
+    }
+    return true;
+  }
+
   function findNeighbor(items, currentKey, direction) {
     const list = Array.isArray(items) ? items : [];
     const index = list.findIndex(item => item && item.key === currentKey);
@@ -15,7 +25,7 @@
     return nextIndex >= 0 && nextIndex < list.length ? list[nextIndex] : null;
   }
 
-  return { detailKey, findNeighbor };
+  return { detailKey, isVisibleRow, findNeighbor };
 });
 
 (() => {
@@ -36,6 +46,7 @@
     const seen = new Set();
     const items = [];
     document.querySelectorAll('#tbody tr').forEach(row => {
+      if (!api.isVisibleRow(row)) return;
       const trigger = row.querySelector('.detail-trigger[data-detail-comment][data-detail-user]');
       if (!trigger) return;
       const key = api.detailKey(trigger.dataset.detailComment, trigger.dataset.detailUser);

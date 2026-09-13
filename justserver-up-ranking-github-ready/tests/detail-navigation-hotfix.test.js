@@ -10,8 +10,6 @@ try {
   navigation = null;
 }
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'applicant-detail-navigation-hotfix.js'), 'utf8');
-
 test('moves to previous and next applicant in current visible order', () => {
   assert.ok(navigation, 'navigation hotfix module must exist');
   const items = [
@@ -35,10 +33,23 @@ test('navigation stops at the edges of the currently filtered list', () => {
   assert.equal(navigation.findNeighbor(filtered, '4:d', 1), null);
 });
 
-test('detail navigation uses an in-flow row instead of overlaying modal content', () => {
-  assert.match(source, /detail-nav-row/);
-  assert.doesNotMatch(source, /\.detail-nav\s*\{[^}]*position:absolute/s);
-  assert.match(source, /content\.insertBefore\(row, grid\)/);
-  assert.match(source, /prev\.parentNode !== row/);
-  assert.match(source, /next\.parentNode !== row/);
+test('navigation controls live in a normal-flow row before the detail grid', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'applicant-detail-navigation-hotfix.js'), 'utf8');
+  assert.match(source, /\.detail-nav-row\{display:flex/);
+  assert.match(source, /\.detail-nav\{position:static/);
+  assert.match(source, /content\.insertBefore\(row,\s*grid\)/);
+  assert.doesNotMatch(source, /\.detail-nav\{position:absolute/);
+});
+
+test('hidden rows are excluded from previous and next navigation', () => {
+  assert.ok(navigation, 'navigation hotfix module must exist');
+  assert.equal(typeof navigation.isVisibleRow, 'function');
+  const visible = { hidden: false, ownerDocument: { defaultView: { getComputedStyle: () => ({ display: 'table-row', visibility: 'visible' }) } } };
+  const displayNone = { hidden: false, ownerDocument: { defaultView: { getComputedStyle: () => ({ display: 'none', visibility: 'visible' }) } } };
+  const hiddenAttr = { hidden: true, ownerDocument: { defaultView: { getComputedStyle: () => ({ display: 'table-row', visibility: 'visible' }) } } };
+  assert.equal(navigation.isVisibleRow(visible), true);
+  assert.equal(navigation.isVisibleRow(displayNone), false);
+  assert.equal(navigation.isVisibleRow(hiddenAttr), false);
+  const source = fs.readFileSync(path.join(__dirname, '..', 'applicant-detail-navigation-hotfix.js'), 'utf8');
+  assert.match(source, /if \(!api\.isVisibleRow\(row\)\) return;/);
 });
