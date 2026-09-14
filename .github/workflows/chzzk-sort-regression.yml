@@ -17,4 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/flowercrab-chzzk-hotfix.test.js tests/sort-render-stability.test.js
+      - run: node --test tests/*.test.js
+      - run: node --check flowercrab-chzzk-hotfix.js
+      - run: node --check applicant-follower-column.js
+      - run: node --check sort-toggle-hotfix.js
+      - run: node --check ranking-utils.js
