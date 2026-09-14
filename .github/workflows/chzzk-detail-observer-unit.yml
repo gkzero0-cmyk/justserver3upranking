@@ -1,0 +1,19 @@
+name: CHZZK Detail Observer Regression
+
+on:
+  push:
+    branches:
+      - verify/prod-smoke-20260915
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run observer regression
+        working-directory: justserver-up-ranking-github-ready
+        run: node --test tests/chzzk-detail-observer-loop.test.js
