@@ -32,6 +32,49 @@
     return input;
   }
 
+  function sanitizeDetailPayload(payload) {
+    if (!payload || typeof payload !== 'object' || !payload.ok) return payload;
+    const originalName = String(payload.name || '').replace(/\p{Cf}/gu, '').trim();
+    if (!originalName) return payload;
+    const originalComment = String(payload.originalComment || '');
+    const isChzzk = Boolean(
+      String(payload.chzzkStationUrl || '').trim() ||
+      /치지직|chzzk|옆동네|chzzk\.naver\.com/iu.test(originalComment)
+    );
+    if (!isChzzk) return payload;
+
+    let markerIndex = originalName.indexOf('>');
+    for (const marker of ['＞', '≫', '›', '»', '→', '➡', '➜', '➤']) {
+      const index = originalName.indexOf(marker);
+      if (index > 0 && (markerIndex <= 0 || index < markerIndex)) markerIndex = index;
+    }
+    if (markerIndex <= 0) return payload;
+
+    const cleaned = originalName.slice(0, markerIndex).trim();
+    if (!cleaned || cleaned === originalName) return payload;
+    return { ...payload, name: cleaned };
+  }
+
+  async function sanitizeDetailResponse(win, response) {
+    if (!response?.ok || typeof response.clone !== 'function' || typeof win?.Response !== 'function' || typeof win?.Headers !== 'function') {
+      return response;
+    }
+    try {
+      const payload = await response.clone().json();
+      const sanitized = sanitizeDetailPayload(payload);
+      if (sanitized === payload) return response;
+      const headers = new win.Headers(response.headers);
+      headers.delete('content-length');
+      return new win.Response(JSON.stringify(sanitized), {
+        status: response.status,
+        statusText: response.statusText,
+        headers
+      });
+    } catch {
+      return response;
+    }
+  }
+
   function install(win) {
     if (!win || typeof win.fetch !== 'function' || win.__justserverApplicantDetailV2Installed) return;
     win.__justserverApplicantDetailV2Installed = true;
@@ -42,11 +85,11 @@
       const v2Args = [rewriteInput(args[0]), ...args.slice(1)];
       try {
         const response = await nativeFetch(...v2Args);
-        if (response?.ok) return response;
+        if (response?.ok) return sanitizeDetailResponse(win, response);
       } catch {}
       return nativeFetch(...args);
     };
   }
 
-  return { urlText, isLegacyDetailUrl, toV2Url, rewriteInput, install };
+  return { urlText, isLegacyDetailUrl, toV2Url, rewriteInput, sanitizeDetailPayload, sanitizeDetailResponse, install };
 });
