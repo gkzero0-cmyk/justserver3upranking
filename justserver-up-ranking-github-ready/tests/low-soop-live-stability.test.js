@@ -15,10 +15,12 @@ test('a failed background refresh preserves the last verified count instead of c
   assert.match(source, /if \(hadVerifiedSnapshot\) \{[\s\S]*liveFetchedAt = Date\.now\(\);[\s\S]*dataReady = true;[\s\S]*loadError = false;[\s\S]*scheduleApply\(\);[\s\S]*return;[\s\S]*\}/);
 });
 
-test('legacy comment-count rewrites are repaired before the next paint', () => {
+test('legacy comment-count and row-attribute rewrites are repaired before the next paint', () => {
   assert.match(source, /function repairAuthoritativeUi\(\)/);
   assert.match(source, /new win\.MutationObserver\(repairAuthoritativeUi\)\.observe\(countNode/);
-  assert.match(source, /new win\.MutationObserver\(repairAuthoritativeUi\)\.observe\(tbody/);
+  assert.match(source, /attributeFilter:\s*\['data-low-soop'\]/);
+  assert.match(source, /if \(row\.getAttribute\('data-low-soop'\) !== lowValue\) row\.setAttribute\('data-low-soop', lowValue\);/);
+  assert.match(source, /if \(row\.getAttribute\('data-low-soop-live'\) !== lowValue\) row\.setAttribute\('data-low-soop-live', lowValue\);/);
 });
 
 test('clicking the 500 이하 filter only reapplies the verified snapshot', () => {
