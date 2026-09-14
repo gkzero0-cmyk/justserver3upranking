@@ -82,14 +82,13 @@
 
     tabs.querySelector('.sort-btn[data-sort="oldest"]')?.remove();
 
-    const staleFollower = tabs.querySelector('.sort-btn[data-sort="followers"]');
-    const followerButton = doc.createElement('button');
-    followerButton.className = 'sort-btn';
-    followerButton.type = 'button';
-    followerButton.dataset.sort = 'followers';
-    followerButton.textContent = SORT_LABELS.followers;
-    if (staleFollower) staleFollower.replaceWith(followerButton);
-    else {
+    let followerButton = tabs.querySelector('.sort-btn[data-sort="followers"]');
+    if (!followerButton) {
+      followerButton = doc.createElement('button');
+      followerButton.className = 'sort-btn';
+      followerButton.type = 'button';
+      followerButton.dataset.sort = 'followers';
+      followerButton.textContent = SORT_LABELS.followers;
       const favoriteFilter = doc.getElementById('favoriteFilterBtn');
       if (favoriteFilter) tabs.insertBefore(followerButton, favoriteFilter);
       else tabs.appendChild(followerButton);
@@ -98,8 +97,8 @@
     const buttons = [...tabs.querySelectorAll('.sort-btn')].filter(button => Object.prototype.hasOwnProperty.call(DEFAULT_DIRECTIONS, button.dataset.sort));
     const nativeFetch = win.fetch.bind(win);
     let state = { mode: 'up', direction: 'desc' };
-    let scheduled = false;
     let commentMeta = new Map();
+    win.__justserverSortState = { ...state };
 
     function updateLabels() {
       for (const button of buttons) {
@@ -114,37 +113,25 @@
       const userId = String(trigger?.dataset.detailUser || '').trim();
       const commentNo = String(trigger?.dataset.detailComment || '').trim();
       const cached = commentMeta.get(detailKey(commentNo, userId)) || {};
-      const followerText = row.querySelector('td.followers .follower-line[data-platform="soop"] .follower-value')?.textContent || '';
       return {
         userId,
         commentNo,
         rank: Number(row.dataset.rank || 0),
         up: Number(cached.up || 0),
         regDate: cached.regDate || '',
-        followerCount: toCount(followerText),
         row
       };
     }
 
     function applySort() {
-      scheduled = false;
       const rows = [...tbody.querySelectorAll('tr[data-rank]')];
       if (!rows.length) return;
-      const items = rows.map(rowData);
-      const counts = {};
-      for (const item of items) if (item.userId) counts[item.userId] = item.followerCount;
-      const sortedRows = sortApplicants(items, state.mode, state.direction, counts).map(item => item.row);
+      const counts = win.__justserverSoopFavoriteCounts || {};
+      const sortedRows = sortApplicants(rows.map(rowData), state.mode, state.direction, counts).map(item => item.row);
       for (const cutRow of tbody.querySelectorAll('.cut-row')) cutRow.hidden = !(state.mode === 'up' && state.direction === 'desc');
       if (rows.length < 2 || rows.every((row, index) => row === sortedRows[index])) return;
       const trailing = [...tbody.children].find(node => node.tagName === 'TR' && !node.matches('tr[data-rank]')) || null;
       for (const row of sortedRows) tbody.insertBefore(row, trailing);
-    }
-
-    function scheduleSort() {
-      if (scheduled) return;
-      scheduled = true;
-      const raf = win.requestAnimationFrame || (callback => win.setTimeout(callback, 0));
-      raf(applySort);
     }
 
     function cacheComments(comments) {
@@ -155,19 +142,35 @@
         next.set(key, { regDate: String(item?.regDate || ''), up: Number(item?.up || 0) });
       }
       commentMeta = next;
-      scheduleSort();
+    }
+
+    function installSynchronousRenderHook() {
+      if (tbody.__justserverSynchronousSortHookInstalled) return;
+      const descriptor = win.Element?.prototype ? Object.getOwnPropertyDescriptor(win.Element.prototype, 'innerHTML') : null;
+      if (!descriptor?.get || !descriptor?.set) return;
+      Object.defineProperty(tbody, 'innerHTML', {
+        configurable: true,
+        enumerable: descriptor.enumerable,
+        get() { return descriptor.get.call(this); },
+        set(value) {
+          descriptor.set.call(this, value);
+          applySort();
+        }
+      });
+      tbody.__justserverSynchronousSortHookInstalled = true;
     }
 
     for (const button of buttons) {
       button.addEventListener('click', () => {
         state = nextSortState(state, button.dataset.sort);
-        const defer = typeof win.queueMicrotask === 'function' ? win.queueMicrotask.bind(win) : callback => win.setTimeout(callback, 0);
-        defer(() => {
-          updateLabels();
-          scheduleSort();
-        });
+        win.__justserverSortState = { ...state };
+        updateLabels();
       });
     }
+
+    win.addEventListener('justserver:soop-favorite-counts', () => {
+      if (state.mode === 'followers') applySort();
+    });
 
     win.fetch = async (...args) => {
       const response = await nativeFetch(...args);
@@ -175,17 +178,16 @@
         const request = args[0];
         const requestUrl = typeof request === 'string' ? request : request?.url || '';
         if (String(requestUrl).includes('/api/comments')) {
-          response.clone().json().then(data => {
-            if (Array.isArray(data?.comments)) cacheComments(data.comments);
-          }).catch(() => {});
+          const data = await response.clone().json();
+          if (Array.isArray(data?.comments)) cacheComments(data.comments);
         }
       } catch {}
       return response;
     };
 
-    if (win.MutationObserver) new win.MutationObserver(scheduleSort).observe(tbody, { childList: true, subtree: true, characterData: true });
+    installSynchronousRenderHook();
     updateLabels();
-    scheduleSort();
+    applySort();
   }
 
   return { DEFAULT_DIRECTIONS, SORT_LABELS, toCount, parseSortTime, countFor, sortApplicants, nextSortState, detailKey, install };
