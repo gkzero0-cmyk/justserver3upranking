@@ -6,6 +6,7 @@ const POST_ID = '204274449';
 const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID}/comment`;
 const POST_URL = `https://www.sooplive.com/station/${CHANNEL_ID}/post/${POST_ID}`;
 const DETAIL_CACHE_MS = 30 * 1000;
+const BUILD_REVISION = '2026-09-14b';
 const detailCache = new Map();
 
 function queryValue(req, name) {
@@ -141,6 +142,7 @@ async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('X-Applicant-Detail-Version', '2');
+  res.setHeader('X-Applicant-Detail-Build', BUILD_REVISION);
 
   const commentNo = queryValue(req, 'commentNo') || bodyValue(req, 'commentNo');
   const userId = queryValue(req, 'userId') || bodyValue(req, 'userId');
@@ -171,6 +173,7 @@ async function handler(req, res) {
     const payload = {
       ok: true,
       apiVersion: 'v2',
+      apiBuild: BUILD_REVISION,
       ...detail,
       name: sanitizeV2Name(detail) || detail.name,
       userId: finalUserId,
@@ -188,6 +191,7 @@ async function handler(req, res) {
     return res.status(502).json({
       ok: false,
       apiVersion: 'v2',
+      apiBuild: BUILD_REVISION,
       error: error?.message || '신청자 상세 정보를 불러오지 못했습니다.',
       fetchedAt: new Date().toISOString()
     });
@@ -195,4 +199,4 @@ async function handler(req, res) {
 }
 
 module.exports = handler;
-module.exports._test = { apiVersion: 'v2', requestRawComment, rawFromRequest, rawCommentNo, rawUserId, sanitizeV2Name };
+module.exports._test = { apiVersion: 'v2', buildRevision: BUILD_REVISION, requestRawComment, rawFromRequest, rawCommentNo, rawUserId, sanitizeV2Name };
