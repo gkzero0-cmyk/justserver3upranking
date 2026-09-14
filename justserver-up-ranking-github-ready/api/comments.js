@@ -5,6 +5,7 @@ const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID
 const POST_URL = `https://www.sooplive.com/station/${CHANNEL_ID}/post/${POST_ID}`;
 
 const CACHE_MS = 850;
+const EXCLUDED_COMMENT_NOS = new Set(['120017217']);
 let cachedPayload = null;
 let cachedAt = 0;
 let inflight = null;
@@ -97,6 +98,10 @@ function normalize(raw) {
   };
 }
 
+function shouldExcludeComment(item) {
+  return EXCLUDED_COMMENT_NOS.has(String(item?.commentNo || '').trim());
+}
+
 async function fetchPage(page, orderby = 'reg_date') {
   const url = new URL(SOOP_API);
   url.searchParams.set('page', String(page));
@@ -121,42 +126,45 @@ async function fetchPage(page, orderby = 'reg_date') {
 }
 
 async function buildPayload() {
-    const first = await fetchPage(1);
-    const firstData = Array.isArray(first?.data) ? first.data : [];
-    const lastPage = Math.max(1, Number(first?.meta?.last_page || 1));
-    const maxPages = Math.min(lastPage, 200);
+  const first = await fetchPage(1);
+  const firstData = Array.isArray(first?.data) ? first.data : [];
+  const lastPage = Math.max(1, Number(first?.meta?.last_page || 1));
+  const maxPages = Math.min(lastPage, 200);
 
-    const restPages = [];
-    for (let start = 2; start <= maxPages; start += 8) {
-      const batch = [];
-      for (let p = start; p < start + 8 && p <= maxPages; p++) batch.push(fetchPage(p));
-      const results = await Promise.all(batch);
-      restPages.push(...results);
-    }
+  const restPages = [];
+  for (let start = 2; start <= maxPages; start += 8) {
+    const batch = [];
+    for (let p = start; p < start + 8 && p <= maxPages; p++) batch.push(fetchPage(p));
+    const results = await Promise.all(batch);
+    restPages.push(...results);
+  }
 
-    const raw = firstData.concat(...restPages.map(x => Array.isArray(x?.data) ? x.data : []));
-    const comments = raw.map(normalize).filter(x => x.userId || x.userNick || x.comment);
+  const raw = firstData.concat(...restPages.map(x => Array.isArray(x?.data) ? x.data : []));
+  const comments = raw
+    .map(normalize)
+    .filter(x => x.userId || x.userNick || x.comment)
+    .filter(x => !shouldExcludeComment(x));
 
-    const seen = new Map();
-    comments.forEach((item, index) => {
-      const key = item.commentNo || `${item.userId}:${item.regDate}:${index}`;
-      seen.set(key, item);
-    });
+  const seen = new Map();
+  comments.forEach((item, index) => {
+    const key = item.commentNo || `${item.userId}:${item.regDate}:${index}`;
+    seen.set(key, item);
+  });
 
-    const payload = {
-      ok: true,
-      channelId: CHANNEL_ID,
-      postId: POST_ID,
-      fetchedAt: new Date().toISOString(),
-      total: seen.size,
-      pages: maxPages,
-      comments: [...seen.values()]
-    };
+  const payload = {
+    ok: true,
+    channelId: CHANNEL_ID,
+    postId: POST_ID,
+    fetchedAt: new Date().toISOString(),
+    total: seen.size,
+    pages: maxPages,
+    comments: [...seen.values()]
+  };
 
-    return { payload, raw };
+  return { payload, raw };
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -192,3 +200,8 @@ module.exports = async function handler(req, res) {
     });
   }
 }
+
+handler.EXCLUDED_COMMENT_NOS = EXCLUDED_COMMENT_NOS;
+handler.shouldExcludeComment = shouldExcludeComment;
+handler.normalize = normalize;
+module.exports = handler;
