@@ -42,9 +42,10 @@ test('CHZZK applicants are included in SOOP count lookups, deduped by SOOP user 
   assert.deepEqual(collectChzzkSoopUserIds(comments, isChzzkApplicant), ['dein88', 'pinkmold0317']);
 });
 
-test('browser integration removes 오래된순, loads all sort modes, and requests SOOP counts for CHZZK applicants', () => {
+test('browser integration removes 오래된순, uses one sort owner, and publishes current SOOP counts', () => {
   const sortSource = fs.readFileSync(path.join(__dirname, '..', 'sort-toggle-hotfix.js'), 'utf8');
   const countSource = fs.readFileSync(path.join(__dirname, '..', 'chzzk-soop-count-hotfix.js'), 'utf8');
+  const followerSource = fs.readFileSync(path.join(__dirname, '..', 'applicant-follower-column.js'), 'utf8');
   const loader = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
   assert.match(sortSource, /data-sort="oldest"/);
   assert.match(sortSource, /\.remove\(\)/);
@@ -52,7 +53,8 @@ test('browser integration removes 오래된순, loads all sort modes, and reques
   assert.match(sortSource, /최신순/);
   assert.match(sortSource, /즐겨찾기순/);
   assert.match(countSource, /\/api\/soop-favorite-counts/);
-  assert.doesNotMatch(countSource, /dispatchEvent\(/);
-  assert.ok(loader.indexOf('sort-toggle-hotfix.js') > loader.indexOf('soop-follower-sort.js'));
+  assert.match(followerSource, /dispatchEvent\(/);
+  assert.doesNotMatch(loader, /soop-follower-sort\.js/);
+  assert.ok(loader.indexOf('sort-toggle-hotfix.js') > loader.indexOf('applicant-follower-column.js'));
   assert.ok(loader.indexOf('chzzk-soop-count-hotfix.js') > loader.indexOf('sort-toggle-hotfix.js'));
 });
