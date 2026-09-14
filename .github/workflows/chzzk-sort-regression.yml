@@ -17,7 +17,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/*.test.js
+      - run: >-
+          node --test
+          tests/flowercrab-chzzk-hotfix.test.js
+          tests/kimcookie-chzzk-correction.test.js
+          tests/verified-channel-regressions.test.js
+          tests/applicant-follower-column.test.js
+          tests/applicant-follower-loader-order.test.js
+          tests/sort-enhancements.test.js
+          tests/soop-follower-sort.test.js
+          tests/sort-render-stability.test.js
+          tests/live-soop-filter-fix.test.js
+          tests/low-soop-live-stability.test.js
+          tests/chzzk-detail-stats-hotfix.test.js
+          tests/chzzk-applicant-detail.test.js
+          tests/applicant-detail-v2-client.test.js
       - run: node --check flowercrab-chzzk-hotfix.js
       - run: node --check applicant-follower-column.js
       - run: node --check sort-toggle-hotfix.js
