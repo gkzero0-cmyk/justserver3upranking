@@ -52,7 +52,7 @@ test('browser integration removes 오래된순, loads all sort modes, and reques
   assert.match(sortSource, /최신순/);
   assert.match(sortSource, /즐겨찾기순/);
   assert.match(countSource, /\/api\/soop-favorite-counts/);
-  assert.match(countSource, /justserver:soop-favorite-counts/);
+  assert.doesNotMatch(countSource, /dispatchEvent\(/);
   assert.ok(loader.indexOf('sort-toggle-hotfix.js') > loader.indexOf('soop-follower-sort.js'));
   assert.ok(loader.indexOf('chzzk-soop-count-hotfix.js') > loader.indexOf('sort-toggle-hotfix.js'));
 });
