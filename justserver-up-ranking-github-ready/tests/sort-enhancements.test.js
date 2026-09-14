@@ -1,11 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   sortApplicants,
-  collectChzzkSoopUserIds,
   nextSortState,
   DEFAULT_DIRECTIONS
-} = require('../soop-follower-sort.js');
+} = require('../sort-toggle-hotfix.js');
+const { collectChzzkSoopUserIds } = require('../chzzk-soop-count-hotfix.js');
 
 test('UP, newest, and SOOP follower sorting support reverse direction while missing follower counts stay last', () => {
   const items = [
@@ -40,15 +42,17 @@ test('CHZZK applicants are included in SOOP count lookups, deduped by SOOP user 
   assert.deepEqual(collectChzzkSoopUserIds(comments, isChzzkApplicant), ['dein88', 'pinkmold0317']);
 });
 
-test('browser integration removes 오래된순 and requests current SOOP counts for CHZZK applicants', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const source = fs.readFileSync(path.join(__dirname, '..', 'soop-follower-sort.js'), 'utf8');
-  assert.match(source, /data-sort=\\?['\"]oldest\\?['\"]/);
-  assert.match(source, /oldest\.remove\(\)/);
-  assert.match(source, /\/api\/soop-favorite-counts/);
-  assert.match(source, /justserver:soop-favorite-counts/);
-  assert.match(source, /UP순/);
-  assert.match(source, /최신순/);
-  assert.match(source, /즐겨찾기순/);
+test('browser integration removes 오래된순, loads all sort modes, and requests SOOP counts for CHZZK applicants', () => {
+  const sortSource = fs.readFileSync(path.join(__dirname, '..', 'sort-toggle-hotfix.js'), 'utf8');
+  const countSource = fs.readFileSync(path.join(__dirname, '..', 'chzzk-soop-count-hotfix.js'), 'utf8');
+  const loader = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
+  assert.match(sortSource, /data-sort="oldest"/);
+  assert.match(sortSource, /\.remove\(\)/);
+  assert.match(sortSource, /UP순/);
+  assert.match(sortSource, /최신순/);
+  assert.match(sortSource, /즐겨찾기순/);
+  assert.match(countSource, /\/api\/soop-favorite-counts/);
+  assert.match(countSource, /justserver:soop-favorite-counts/);
+  assert.ok(loader.indexOf('sort-toggle-hotfix.js') > loader.indexOf('soop-follower-sort.js'));
+  assert.ok(loader.indexOf('chzzk-soop-count-hotfix.js') > loader.indexOf('sort-toggle-hotfix.js'));
 });
