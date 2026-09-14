@@ -10,8 +10,8 @@ const statsSource = fs.readFileSync(path.join(__dirname, '..', 'stats-summary-ho
 const loaderSource = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
 
 test('excludes only the confirmed duplicate Moon Haena comment', () => {
-  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '120017217', userId: 'haena419' }), true);
-  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119797205', userId: 'haena419' }), false);
+  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119797205', userId: 'haena419' }), true);
+  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '120017217', userId: 'haena419' }), false);
   assert.equal(commentsHandler.EXCLUDED_COMMENT_NOS.size, 1);
 });
 
