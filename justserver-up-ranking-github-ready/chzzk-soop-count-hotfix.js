@@ -48,13 +48,6 @@
       return merged;
     }
 
-    function emitCounts(counts) {
-      if (!counts || typeof counts !== 'object') return;
-      if (typeof win.CustomEvent === 'function' && typeof win.dispatchEvent === 'function') {
-        win.dispatchEvent(new win.CustomEvent('justserver:soop-favorite-counts', { detail: { counts } }));
-      }
-    }
-
     function refresh(comments) {
       const userIds = collectChzzkSoopUserIds(comments, win.RankingUtils?.isChzzkApplicant);
       if (!userIds.length || request) return;
@@ -64,7 +57,6 @@
       signature = nextSignature;
       attemptedAt = now;
       request = fetchCounts(userIds)
-        .then(emitCounts)
         .catch(() => {})
         .finally(() => { request = null; });
     }
