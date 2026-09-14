@@ -11,3 +11,5 @@ SOOP 게시글 댓글의 UP 랭킹을 실시간으로 보여주는 Vercel 배포
 
 ## 배포
 Vercel 프로젝트를 이 GitHub 저장소와 연결하면 `main` 브랜치 push 시 자동 배포됩니다.
+
+<!-- production-redeploy-marker: 2026-09-14c -->
