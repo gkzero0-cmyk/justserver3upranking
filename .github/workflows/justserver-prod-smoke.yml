@@ -1,0 +1,20 @@
+name: JustServer Production Smoke
+
+on:
+  push:
+    branches:
+      - verify/prod-smoke-20260915
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install browser driver
+        run: npm install --no-save puppeteer-core@24.16.0
+      - name: Run production browser smoke
+        run: node .github/scripts/justserver-prod-smoke.cjs
