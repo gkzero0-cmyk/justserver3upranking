@@ -3,6 +3,7 @@
   const current = document.currentScript;
   const source = current?.src || location.href;
   const baseUrl = new URL('./ranking-utils-base.js', source).href;
+  const verifiedChzzkUrl = new URL('./flowercrab-chzzk-hotfix.js', source).href;
   const detailUtilsUrl = new URL('./applicant-detail-utils.js', source).href;
   const followerColumnUrl = new URL('./applicant-follower-column.js', source).href;
   const freepassUrl = new URL('./freepass-filter.js', source).href;
@@ -12,6 +13,7 @@
   const detailContentHotfixUrl = new URL('./applicant-detail-content-hotfix.js', source).href;
   const chzzkStatsHotfixUrl = new URL('./chzzk-detail-stats-hotfix.js', source).href;
   document.write(`<script src="${baseUrl}"><\/script>`);
+  document.write(`<script src="${verifiedChzzkUrl}"><\/script>`);
   document.write(`<script src="${detailUtilsUrl}"><\/script>`);
   document.write(`<script src="${followerColumnUrl}"><\/script>`);
   document.write(`<script src="${freepassUrl}"><\/script>`);
