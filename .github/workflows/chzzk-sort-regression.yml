@@ -1,0 +1,20 @@
+name: CHZZK and sort regression
+
+on:
+  push:
+    branches:
+      - verify/chzzk-sort-stability-20260915
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: justserver-up-ranking-github-ready
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/flowercrab-chzzk-hotfix.test.js tests/sort-render-stability.test.js
