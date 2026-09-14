@@ -3,6 +3,19 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root && root.document && typeof root.fetch === 'function') api.install(root);
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  const PINNED_FREEPASS_USER_IDS = new Set([
+    'chunbongtv', 'msjw0918', 'sohasoha', 'hayodayong', 'sudal0923', 'xxxkimmickey', 'yuchya',
+    'saturn0106', 'peachbox', 'rakuni', 'ruringruming', 'dup130', 'mihui96', 'heb4960'
+  ]);
+
+  function normalizeUserId(value) {
+    return String(value ?? '').trim().toLowerCase();
+  }
+
+  function isPinnedFreepassUser(userId) {
+    return PINNED_FREEPASS_USER_IDS.has(normalizeUserId(userId));
+  }
+
   function normalizeCommentText(value) {
     return String(value ?? '')
       .replace(/<br\s*\/?\s*>/gi, '\n')
@@ -43,6 +56,16 @@
     const commentNo = String(item?.commentNo ?? item?.p_comment_no ?? item?.comment_no ?? '').trim();
     const userId = String(item?.userId ?? item?.user_id ?? '').trim().toLowerCase();
     return commentNo && userId ? `${commentNo}:${userId}` : '';
+  }
+
+  function collectFreepassKeys(comments) {
+    const next = new Set();
+    for (const item of comments || []) {
+      if (!isPinnedFreepassUser(item?.userId ?? item?.user_id) && !isFreepassUseComment(item?.comment)) continue;
+      const key = freepassKey(item);
+      if (key) next.add(key);
+    }
+    return next;
   }
 
   function placeFreepassStatCard(stats, card) {
@@ -129,7 +152,7 @@
         badge = doc.createElement('span');
         badge.className = 'freepass-badge';
         badge.textContent = '프리패스';
-        badge.title = '신청 댓글에서 프리패스권 사용 의사를 확인했습니다.';
+        badge.title = '프리패스 대상 신청자입니다.';
         nameRow.appendChild(badge);
       } else if (!matched && badge) {
         badge.remove();
@@ -161,13 +184,7 @@
     }
 
     function updateComments(comments) {
-      const next = new Set();
-      for (const item of comments || []) {
-        if (!isFreepassUseComment(item?.comment)) continue;
-        const key = freepassKey(item);
-        if (key) next.add(key);
-      }
-      freepassKeys = next;
+      freepassKeys = collectFreepassKeys(comments);
       scheduleApply();
     }
 
@@ -192,5 +209,16 @@
     scheduleApply();
   }
 
-  return { normalizeCommentText, normalizeForFreepassMatch, isFreepassUseComment, freepassKey, placeFreepassStatCard, install };
+  return {
+    PINNED_FREEPASS_USER_IDS,
+    normalizeUserId,
+    isPinnedFreepassUser,
+    normalizeCommentText,
+    normalizeForFreepassMatch,
+    isFreepassUseComment,
+    freepassKey,
+    collectFreepassKeys,
+    placeFreepassStatCard,
+    install
+  };
 });
