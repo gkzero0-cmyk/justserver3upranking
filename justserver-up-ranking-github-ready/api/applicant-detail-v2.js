@@ -6,7 +6,7 @@ const POST_ID = '204274449';
 const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID}/comment`;
 const POST_URL = `https://www.sooplive.com/station/${CHANNEL_ID}/post/${POST_ID}`;
 const DETAIL_CACHE_MS = 30 * 1000;
-const BUILD_REVISION = '2026-09-14b';
+const BUILD_REVISION = '2026-09-14c';
 const detailCache = new Map();
 
 function queryValue(req, name) {
@@ -50,10 +50,21 @@ function sanitizeV2Name(detail) {
   const originalComment = String(detail?.originalComment || '');
   const isChzzk = Boolean(String(detail?.chzzkStationUrl || '').trim() || /치지직|chzzk|옆동네/iu.test(originalComment));
   if (!isChzzk) return originalName;
-  const cleaned = originalName
-    .replace(/(?:\s+[>＞≫›»→➡➜➤]+|>{2,})[\s\S]*$/u, '')
-    .trim();
-  return cleaned || originalName;
+
+  const asciiRedirect = originalName.indexOf('>>');
+  if (asciiRedirect > 0) {
+    const candidate = originalName.slice(0, asciiRedirect).trim();
+    if (candidate) return candidate;
+  }
+
+  for (const marker of ['＞', '≫', '›', '»', '→', '➡', '➜', '➤']) {
+    const markerIndex = originalName.indexOf(marker);
+    if (markerIndex <= 0) continue;
+    const candidate = originalName.slice(0, markerIndex).trim();
+    if (candidate) return candidate;
+  }
+
+  return originalName;
 }
 
 async function fetchJson(url, referer) {
