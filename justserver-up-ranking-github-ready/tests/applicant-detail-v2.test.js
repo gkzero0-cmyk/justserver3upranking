@@ -92,3 +92,18 @@ test('v2 route strips redirect suffix for the exact production Ditto payload and
 test('v2 route exposes the current build revision so production function freshness can be verified', () => {
   assert.equal(route._test?.buildRevision, '2026-09-14d');
 });
+
+test('client sanitizes CHZZK redirect suffixes before rendering detail responses', () => {
+  assert.equal(typeof client.sanitizeDetailPayload, 'function');
+  const payload = client.sanitizeDetailPayload({
+    ok: true,
+    name: '디또띠 >>',
+    originalComment: '이름 : 디또띠 >> https://chzzk.naver.com/b28d617a1d981cfff65d163f116cab7d',
+    chzzkStationUrl: 'https://chzzk.naver.com/b28d617a1d981cfff65d163f116cab7d'
+  });
+  assert.equal(payload.name, '디또띠');
+  assert.equal(
+    client.sanitizeDetailPayload({ ok: true, name: 'SOOP>A', originalComment: '일반 SOOP 신청', chzzkStationUrl: '' }).name,
+    'SOOP>A'
+  );
+});
