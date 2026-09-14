@@ -9,17 +9,16 @@ function source(name) {
   return fs.readFileSync(path.join(root, name), 'utf8');
 }
 
-test('main render owns sort order instead of async DOM re-sorting', () => {
-  const index = source('index.html');
+test('automatic tbody renders synchronously reapply the selected sort without a competing sorter', () => {
   const loader = source('ranking-utils.js');
   const sort = source('sort-toggle-hotfix.js');
 
-  assert.match(index, /SortToggleHotfix\.sortApplicants/);
-  assert.match(index, /nextSortState/);
-  assert.match(index, /__justserverSoopFavoriteCounts/);
-  assert.match(index, /justserver:soop-favorite-counts/);
   assert.doesNotMatch(loader, /soop-follower-sort\.js/);
-  assert.doesNotMatch(sort, /tbody\.insertBefore\(row/);
+  assert.match(sort, /Object\.defineProperty\(tbody, 'innerHTML'/);
+  assert.match(sort, /descriptor\.set\.call\(this, value\);\s*applySort\(\);/s);
+  assert.match(sort, /__justserverSoopFavoriteCounts/);
+  assert.match(sort, /justserver:soop-favorite-counts/);
+  assert.doesNotMatch(sort, /new win\.MutationObserver\(scheduleSort\)/);
 });
 
 test('SOOP count publisher exposes one merged snapshot for stable render-time sorting', () => {
