@@ -121,8 +121,7 @@
       return Boolean(key && verifiedKeys.has(key));
     }
 
-    function apply() {
-      applyScheduled = false;
+    function repairAuthoritativeUi() {
       const status = filterStatusText(dataReady, loadError, verifiedUsers.size);
       if (countNode && countNode.textContent !== status) countNode.textContent = status;
       if (!tbody) return;
@@ -132,6 +131,11 @@
         row.setAttribute('data-low-soop-live', isLow ? '1' : '0');
         row.setAttribute('data-low-soop', isLow ? '1' : '0');
       }
+    }
+
+    function apply() {
+      applyScheduled = false;
+      repairAuthoritativeUi();
     }
 
     function scheduleApply() {
@@ -147,7 +151,7 @@
       verifiedKeys = new Set(verified.keys);
       loadError = false;
       dataReady = true;
-      scheduleApply();
+      repairAuthoritativeUi();
     }
 
     async function fetchCountChunks(userIds) {
@@ -175,7 +179,7 @@
         verifiedKeys = new Set();
         loadError = false;
         dataReady = true;
-        scheduleApply();
+        repairAuthoritativeUi();
         return;
       }
 
@@ -187,10 +191,13 @@
       }
       if (liveRequest) return;
 
+      const hadVerifiedSnapshot = dataReady && !loadError && liveFetchedAt > 0;
       liveSignature = signature;
       loadError = false;
-      dataReady = false;
-      scheduleApply();
+      if (!hadVerifiedSnapshot) {
+        dataReady = false;
+        scheduleApply();
+      }
 
       liveRequest = fetchCountChunks(userIds)
         .then(counts => {
@@ -199,6 +206,13 @@
           applyVerifiedCounts();
         })
         .catch(() => {
+          if (hadVerifiedSnapshot) {
+            liveFetchedAt = Date.now();
+            dataReady = true;
+            loadError = false;
+            scheduleApply();
+            return;
+          }
           liveCounts = new Map();
           verifiedUsers = new Set();
           verifiedKeys = new Set();
@@ -232,15 +246,12 @@
     };
 
     if (tbody && win.MutationObserver) {
-      new win.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
+      new win.MutationObserver(repairAuthoritativeUi).observe(tbody, { childList: true, subtree: true });
     }
     if (countNode && win.MutationObserver) {
-      new win.MutationObserver(() => {
-        const expected = filterStatusText(dataReady, loadError, verifiedUsers.size);
-        if (countNode.textContent !== expected) scheduleApply();
-      }).observe(countNode, { childList: true, characterData: true, subtree: true });
+      new win.MutationObserver(repairAuthoritativeUi).observe(countNode, { childList: true, characterData: true, subtree: true });
     }
-    if (lowButton) lowButton.addEventListener('click', () => scheduleApply());
+    if (lowButton) lowButton.addEventListener('click', repairAuthoritativeUi);
 
     scheduleApply();
   }
