@@ -10,6 +10,7 @@
   const chzzkSoopCountHotfixUrl = new URL('./chzzk-soop-count-hotfix.js', source).href;
   const freepassUrl = new URL('./freepass-filter.js', source).href;
   const fixUrl = new URL('./live-soop-filter-fix.js', source).href;
+  const summaryStatsUrl = new URL('./stats-summary-hotfix.js', source).href;
   const detailHotfixUrl = new URL('./applicant-detail-navigation-hotfix.js', source).href;
   const detailV2ClientUrl = new URL('./applicant-detail-v2-client.js', source).href;
   const detailContentHotfixUrl = new URL('./applicant-detail-content-hotfix.js', source).href;
@@ -22,6 +23,7 @@
   document.write(`<script src="${chzzkSoopCountHotfixUrl}"><\/script>`);
   document.write(`<script src="${freepassUrl}"><\/script>`);
   document.write(`<script src="${fixUrl}"><\/script>`);
+  document.write(`<script src="${summaryStatsUrl}"><\/script>`);
   document.write(`<script src="${detailHotfixUrl}"><\/script>`);
   document.write(`<script src="${detailV2ClientUrl}"><\/script>`);
   document.write(`<script src="${detailContentHotfixUrl}"><\/script>`);
