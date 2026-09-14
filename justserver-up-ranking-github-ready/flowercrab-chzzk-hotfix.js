@@ -19,7 +19,7 @@
     jemin18:Object.freeze({channelName:'예준찡',channelId:'e997149e0941aabdefdbaec44ed04a3e'}),
     diana1207:Object.freeze({channelName:'쑤니s',channelId:'e3b1c8a6af2882052ceda4b225a422c0'}),
     flowercrab12:Object.freeze({channelName:'꽃게대장',channelId:'43e3c57feed0478ff9812109a40f9fe8'}),
-    diemzleod:Object.freeze({channelName:'김쿠키!',channelId:'f8f9c0d0029b58c79eb6070ff501cac1'})
+    diemzleod:Object.freeze({channelName:'김쿠키',channelId:'f8f9c0d0029b58c79eb6070ff501cac1'})
   });
   const USER_ID='flowercrab12';
   const CHANNEL_ID=VERIFIED_APPLICANTS[USER_ID].channelId;
