@@ -23,7 +23,15 @@
     return `/api/chzzk-channel?${params.toString()}`;
   }
 
-  return { isChzzkDetail, formatFollowerCount, buildChzzkLookupUrl };
+  function setTextIfChanged(node, value) {
+    if (!node) return false;
+    const next = String(value ?? '');
+    if (node.textContent === next) return false;
+    node.textContent = next;
+    return true;
+  }
+
+  return { isChzzkDetail, formatFollowerCount, buildChzzkLookupUrl, setTextIfChanged };
 });
 
 (() => {
@@ -32,6 +40,7 @@
   if (!api) return;
 
   const state = { detail: null, channel: null, loading: false, requestToken: 0 };
+  let applyQueued = false;
 
   function ensureStyle() {
     if (document.getElementById('chzzk-detail-stats-hotfix-style')) return;
@@ -52,6 +61,23 @@
     if (value !== null && value !== undefined && Number.isFinite(Number(value))) return api.formatFollowerCount(value);
     if (state.detail?.fanCountSource === 'soop') return api.formatFollowerCount(state.detail?.fanCount);
     return '정보 없음';
+  }
+
+  function ensureChzzkStatNodes(right) {
+    let label = right?.querySelector('.detail-label');
+    let fan = right?.querySelector('.detail-fan');
+    let source = right?.querySelector('.detail-source');
+    if (label && fan && source) return { label, fan, source };
+
+    right.replaceChildren();
+    label = document.createElement('div');
+    label.className = 'detail-label';
+    fan = document.createElement('div');
+    fan.className = 'detail-fan';
+    source = document.createElement('div');
+    source.className = 'detail-source';
+    right.append(label, fan, source);
+    return { label, fan, source };
   }
 
   function applyStats() {
@@ -76,10 +102,8 @@
       field.classList.add('detail-platform-stats');
     }
 
-    const soopFan = left.querySelector('.detail-fan');
-    const soopSource = left.querySelector('.detail-source');
-    if (soopFan) soopFan.textContent = currentSoopCountText();
-    if (soopSource) soopSource.textContent = 'SOOP 방송국의 현재 애청자 · 즐겨찾기 수';
+    api.setTextIfChanged(left.querySelector('.detail-fan'), currentSoopCountText());
+    api.setTextIfChanged(left.querySelector('.detail-source'), 'SOOP 방송국의 현재 애청자 · 즐겨찾기 수');
 
     const chzzkCount = state.loading
       ? '조회 중…'
@@ -93,8 +117,11 @@
           ? '치지직 현재 팔로워 수 · 방송명 정확 일치'
           : '치지직 방송국의 현재 팔로워 수'
         : '정확히 일치하는 치지직 방송국을 찾지 못했습니다.';
-    right.innerHTML = `<div class="detail-label">치지직 팔로워</div><div class="detail-fan">${chzzkCount}</div><div class="detail-source"></div>`;
-    right.querySelector('.detail-source').textContent = chzzkSource;
+
+    const nodes = ensureChzzkStatNodes(right);
+    api.setTextIfChanged(nodes.label, '치지직 팔로워');
+    api.setTextIfChanged(nodes.fan, chzzkCount);
+    api.setTextIfChanged(nodes.source, chzzkSource);
   }
 
   function applyLink() {
@@ -116,7 +143,7 @@
       const soop = Array.from(links.querySelectorAll('a.detail-link')).find(item => /SOOP 방송국/.test(item.textContent || ''));
       if (soop) soop.after(link); else links.prepend(link);
     }
-    link.href = url;
+    if (link.href !== url) link.href = url;
   }
 
   function apply() {
@@ -124,10 +151,21 @@
     applyLink();
   }
 
+  function scheduleApply() {
+    if (applyQueued) return;
+    applyQueued = true;
+    const run = () => {
+      applyQueued = false;
+      apply();
+    };
+    if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(run);
+    else window.setTimeout(run, 0);
+  }
+
   async function lookup(detail, token) {
     state.loading = true;
     state.channel = null;
-    apply();
+    scheduleApply();
     try {
       const response = await nativeFetch(api.buildChzzkLookupUrl(detail), { cache: 'no-store' });
       const payload = await response.json();
@@ -139,7 +177,7 @@
     } finally {
       if (token !== state.requestToken) return;
       state.loading = false;
-      queueMicrotask(apply);
+      scheduleApply();
     }
   }
 
@@ -161,8 +199,11 @@
     return response;
   };
 
-  const observer = new MutationObserver(() => {
-    if (state.detail && api.isChzzkDetail(state.detail)) apply();
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  const detailBody = document.getElementById('applicantDetailBody');
+  if (detailBody && typeof MutationObserver === 'function') {
+    const observer = new MutationObserver(() => {
+      if (state.detail && api.isChzzkDetail(state.detail)) scheduleApply();
+    });
+    observer.observe(detailBody, { childList: true, subtree: true });
+  }
 })();
