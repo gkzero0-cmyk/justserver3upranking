@@ -32,15 +32,18 @@
 
   function buildChzzkLookup(item, detailUtils) {
     const comment = String(item?.comment || '');
-    const isChzzk = /치지직|chzzk|옆동네/iu.test(comment) || /chzzk\.naver\.com/iu.test(comment);
+    const verified = typeof globalThis !== 'undefined' ? globalThis.VerifiedChzzkApplicantsHotfix?.getVerifiedApplicant?.(item) : null;
+    const isChzzk = Boolean(verified) || /치지직|chzzk|옆동네/iu.test(comment) || /chzzk\.naver\.com/iu.test(comment);
     if (!isChzzk) return { isChzzk: false, name: '', channelUrl: '' };
-    let name = String(item?.userNick || '').trim();
-    let channelUrl = '';
-    try {
-      const parsed = detailUtils?.parseApplicationComment?.(comment, name);
-      if (parsed?.name) name = String(parsed.name).trim();
-      channelUrl = String(detailUtils?.extractChzzkStationUrl?.(comment) || '').trim();
-    } catch {}
+    let name = String(verified?.channelName || item?.userNick || '').trim();
+    let channelUrl = String(verified?.channelUrl || '').trim();
+    if (!verified) {
+      try {
+        const parsed = detailUtils?.parseApplicationComment?.(comment, name);
+        if (parsed?.name) name = String(parsed.name).trim();
+        channelUrl = String(detailUtils?.extractChzzkStationUrl?.(comment) || '').trim();
+      } catch {}
+    }
     return { isChzzk: true, name, channelUrl };
   }
 
@@ -68,6 +71,14 @@
     const queued = new Set();
     let active = 0;
     let renderPending = false;
+
+    function publishSoopCounts() {
+      const counts = Object.fromEntries(soopCounts.entries());
+      win.__justserverSoopFavoriteCounts = counts;
+      if (typeof win.dispatchEvent === 'function' && typeof win.CustomEvent === 'function') {
+        win.dispatchEvent(new win.CustomEvent('justserver:soop-favorite-counts', { detail: { counts } }));
+      }
+    }
 
     function ensureStyle() {
       if (doc.getElementById('applicant-follower-column-style')) return;
@@ -216,9 +227,10 @@
     }
 
     win.addEventListener('justserver:soop-favorite-counts', event => {
-      soopCounts.clear();
       const counts = event?.detail?.counts || {};
+      soopCounts.clear();
       Object.entries(counts).forEach(([userId, count]) => soopCounts.set(userId, toCount(count)));
+      win.__justserverSoopFavoriteCounts = { ...counts };
       scheduleRender();
     });
 
@@ -234,6 +246,7 @@
         } else if (String(requestUrl).includes('/api/soop-favorite-counts')) {
           response.clone().json().then(data => {
             mergeSoopCountPayload(soopCounts, data);
+            publishSoopCounts();
             scheduleRender();
           }).catch(() => {});
         }
@@ -245,6 +258,7 @@
     if (tbody && win.MutationObserver) new win.MutationObserver(scheduleRender).observe(tbody, { childList: true, subtree: true });
     ensureStyle();
     ensureHeaderAndColspans();
+    if (soopCounts.size) publishSoopCounts();
     scheduleRender();
   }
 
