@@ -76,3 +76,7 @@ test('v2 route strips redirect suffix even when an invisible variation mark foll
     'SOOP>A'
   );
 });
+
+test('v2 route exposes a build revision so production function freshness can be verified', () => {
+  assert.equal(route._test?.buildRevision, '2026-09-14b');
+});
