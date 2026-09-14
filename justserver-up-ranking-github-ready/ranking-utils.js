@@ -7,6 +7,8 @@
   const detailUtilsUrl = new URL('./applicant-detail-utils.js', source).href;
   const followerColumnUrl = new URL('./applicant-follower-column.js', source).href;
   const followerSortUrl = new URL('./soop-follower-sort.js', source).href;
+  const sortToggleHotfixUrl = new URL('./sort-toggle-hotfix.js', source).href;
+  const chzzkSoopCountHotfixUrl = new URL('./chzzk-soop-count-hotfix.js', source).href;
   const freepassUrl = new URL('./freepass-filter.js', source).href;
   const fixUrl = new URL('./live-soop-filter-fix.js', source).href;
   const detailHotfixUrl = new URL('./applicant-detail-navigation-hotfix.js', source).href;
@@ -18,6 +20,8 @@
   document.write(`<script src="${detailUtilsUrl}"><\/script>`);
   document.write(`<script src="${followerColumnUrl}"><\/script>`);
   document.write(`<script src="${followerSortUrl}"><\/script>`);
+  document.write(`<script src="${sortToggleHotfixUrl}"><\/script>`);
+  document.write(`<script src="${chzzkSoopCountHotfixUrl}"><\/script>`);
   document.write(`<script src="${freepassUrl}"><\/script>`);
   document.write(`<script src="${fixUrl}"><\/script>`);
   document.write(`<script src="${detailHotfixUrl}"><\/script>`);
