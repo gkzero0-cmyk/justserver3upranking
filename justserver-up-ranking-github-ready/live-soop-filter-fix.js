@@ -125,11 +125,12 @@
       const status = filterStatusText(dataReady, loadError, verifiedUsers.size);
       if (countNode && countNode.textContent !== status) countNode.textContent = status;
       if (!tbody) return;
-      tbody.setAttribute('data-low-soop-live-ready', dataReady && !loadError ? '1' : '0');
+      const readyValue = dataReady && !loadError ? '1' : '0';
+      if (tbody.getAttribute('data-low-soop-live-ready') !== readyValue) tbody.setAttribute('data-low-soop-live-ready', readyValue);
       for (const row of tbody.querySelectorAll('tr[data-rank]')) {
-        const isLow = rowMatches(row);
-        row.setAttribute('data-low-soop-live', isLow ? '1' : '0');
-        row.setAttribute('data-low-soop', isLow ? '1' : '0');
+        const lowValue = rowMatches(row) ? '1' : '0';
+        if (row.getAttribute('data-low-soop-live') !== lowValue) row.setAttribute('data-low-soop-live', lowValue);
+        if (row.getAttribute('data-low-soop') !== lowValue) row.setAttribute('data-low-soop', lowValue);
       }
     }
 
@@ -246,7 +247,12 @@
     };
 
     if (tbody && win.MutationObserver) {
-      new win.MutationObserver(repairAuthoritativeUi).observe(tbody, { childList: true, subtree: true });
+      new win.MutationObserver(repairAuthoritativeUi).observe(tbody, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-low-soop']
+      });
     }
     if (countNode && win.MutationObserver) {
       new win.MutationObserver(repairAuthoritativeUi).observe(countNode, { childList: true, characterData: true, subtree: true });
