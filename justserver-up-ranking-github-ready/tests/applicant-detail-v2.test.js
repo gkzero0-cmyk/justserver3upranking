@@ -65,8 +65,16 @@ test('public loaders install v2 routing after detail navigation and before CHZZK
   }
 });
 
-test('v2 route strips redirect suffix even when an invisible variation mark follows it', () => {
+test('v2 route strips redirect suffix for the exact production Ditto payload and invisible variations', () => {
   assert.equal(typeof route._test?.sanitizeV2Name, 'function');
+  assert.equal(
+    route._test.sanitizeV2Name({
+      name: '디또띠 >>',
+      originalComment: '이름 : 디또띠 >> https://chzzk.naver.com/b28d617a1d981cfff65d163f116cab7d',
+      chzzkStationUrl: 'https://chzzk.naver.com/b28d617a1d981cfff65d163f116cab7d'
+    }),
+    '디또띠'
+  );
   assert.equal(
     route._test.sanitizeV2Name({ name: '디또띠 >>\uFE0F', originalComment: '치지직 신청', chzzkStationUrl: 'https://chzzk.naver.com/abc' }),
     '디또띠'
@@ -77,6 +85,6 @@ test('v2 route strips redirect suffix even when an invisible variation mark foll
   );
 });
 
-test('v2 route exposes a build revision so production function freshness can be verified', () => {
-  assert.equal(route._test?.buildRevision, '2026-09-14b');
+test('v2 route exposes the current build revision so production function freshness can be verified', () => {
+  assert.equal(route._test?.buildRevision, '2026-09-14c');
 });
