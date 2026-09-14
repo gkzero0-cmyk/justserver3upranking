@@ -37,7 +37,7 @@ test('summary cards use the requested labels and order anchors', () => {
   assert.match(statsSource, /chzzkCount/);
   assert.match(statsSource, /lowSoopFavoriteCount/);
   assert.match(statsSource, /freepassCount/);
-  assert.match(statsSource, /자동\s*갱신/);
+  assert.ok(statsSource.includes('자동\\s*갱신'));
   assert.match(statsSource, /\[totalCard, soopCard, chzzkCard, lowSoopCard, freepassCard, autoCard\]/);
 });
 
