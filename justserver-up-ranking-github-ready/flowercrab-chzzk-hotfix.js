@@ -10,9 +10,15 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const REFRESH_MS=5*60*1000;
   const VERIFIED_APPLICANTS=Object.freeze({
-    flowercrab12:Object.freeze({channelName:'꽃게대장',channelId:'43e3c57feed0478ff9812109a40f9fe8'}),
-    changdudn50:Object.freeze({channelName:'자율2025',channelId:'4b2477f3cf709125fa17ece64ad66ffc'}),
+    ruchar0526:Object.freeze({channelName:'ruchar',channelId:'ca3c2250f11c54ce8ba30fce2da7d837'}),
+    luiliuli:Object.freeze({channelName:'루이Luii',channelId:'98d01e25e79820a55d261f3baf19f2eb'}),
+    rians2:Object.freeze({channelName:'RianS2',channelId:'2737bfddb6120be9faafc4402678bb42'}),
+    changhyon50:Object.freeze({channelName:'자율2025',channelId:'4b2477f3cf709125fa17ece64ad66ffc'}),
+    duckchip123:Object.freeze({channelName:'노리668',channelId:'1d694389462927382fbd3b9239792729'}),
+    ppokbun:Object.freeze({channelName:'김뽁분',channelId:'15558be4cb5d45e6f6c0d2ee9967b8b4'}),
     jemin18:Object.freeze({channelName:'예준찡',channelId:'e997149e0941aabdefdbaec44ed04a3e'}),
+    diana1207:Object.freeze({channelName:'쑤니s',channelId:'e3b1c8a6af2882052ceda4b225a422c0'}),
+    flowercrab12:Object.freeze({channelName:'꽃게대장',channelId:'43e3c57feed0478ff9812109a40f9fe8'}),
     diemzleod:Object.freeze({channelName:'김쿠키',channelId:'f8f9c0d0029b58c79eb6070ff501cac1'})
   });
   const USER_ID='flowercrab12';
