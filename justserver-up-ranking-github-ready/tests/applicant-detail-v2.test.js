@@ -80,11 +80,15 @@ test('v2 route strips redirect suffix for the exact production Ditto payload and
     '디또띠'
   );
   assert.equal(
+    route._test.sanitizeV2Name({ name: '디또띠 >\uFE0F>', originalComment: '치지직 신청', chzzkStationUrl: 'https://chzzk.naver.com/abc' }),
+    '디또띠'
+  );
+  assert.equal(
     route._test.sanitizeV2Name({ name: 'SOOP>A', originalComment: '일반 SOOP 신청', chzzkStationUrl: '' }),
     'SOOP>A'
   );
 });
 
 test('v2 route exposes the current build revision so production function freshness can be verified', () => {
-  assert.equal(route._test?.buildRevision, '2026-09-14c');
+  assert.equal(route._test?.buildRevision, '2026-09-14d');
 });
