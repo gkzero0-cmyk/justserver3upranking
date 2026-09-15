@@ -9,10 +9,11 @@ const commentsHandler = require('../api/comments.js');
 const statsSource = fs.readFileSync(path.join(__dirname, '..', 'stats-summary-hotfix.js'), 'utf8');
 const loaderSource = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
 
-test('excludes only the confirmed duplicate Moon Haena comment', () => {
+test('excludes the confirmed Moon Haena duplicate comments and preserves the restored original', () => {
   assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119797205', userId: 'haena419' }), true);
+  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119806205', userId: 'haena419' }), true);
   assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '120017217', userId: 'haena419' }), false);
-  assert.equal(commentsHandler.EXCLUDED_COMMENT_NOS.size, 1);
+  assert.equal(commentsHandler.EXCLUDED_COMMENT_NOS.size, 2);
 });
 
 test('counts unique SOOP applicants while excluding CHZZK applicants', () => {
