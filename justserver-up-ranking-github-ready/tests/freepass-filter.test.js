@@ -1,6 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { isFreepassUseComment, freepassKey } = require('../freepass-filter.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const freepass = require('../freepass-filter.js');
+const { isFreepassUseComment, freepassKey } = freepass;
+
+const source = fs.readFileSync(path.join(__dirname, '..', 'freepass-filter.js'), 'utf8');
 
 test('classifies explicit first-person freepass usage phrases', () => {
   const yes = [
@@ -59,4 +64,17 @@ test('normalizes html and whitespace around freepass phrases', () => {
 
 test('builds a stable applicant key', () => {
   assert.equal(freepassKey({ commentNo: '120', userId: 'ABC' }), '120:abc');
+});
+
+test('detail freepass classification reuses pinned IDs and explicit freepass usage', () => {
+  assert.equal(typeof freepass.isFreepassDetail, 'function');
+  assert.equal(freepass.isFreepassDetail({ userId: 'sohasoha', originalComment: '일반 신청' }), true);
+  assert.equal(freepass.isFreepassDetail({ userId: 'normal123', originalComment: '프리패스권 사용합니다!' }), true);
+  assert.equal(freepass.isFreepassDetail({ userId: 'normal123', originalComment: '일반 신청입니다' }), false);
+});
+
+test('detail badge targets the detail title and removes stale badge for non-freepass navigation', () => {
+  assert.match(source, /#applicantDetailTitle/);
+  assert.match(source, /detail-freepass-badge/);
+  assert.match(source, /else if \(!matched && badge\)/);
 });
