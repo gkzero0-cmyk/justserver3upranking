@@ -5,7 +5,7 @@ const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID
 const POST_URL = `https://www.sooplive.com/station/${CHANNEL_ID}/post/${POST_ID}`;
 
 const CACHE_MS = 850;
-const EXCLUDED_COMMENT_NOS = new Set(['119797205', '119806205']);
+const EXCLUDED_COMMENT_NOS = new Set(['119806205']);
 let cachedPayload = null;
 let cachedAt = 0;
 let inflight = null;
