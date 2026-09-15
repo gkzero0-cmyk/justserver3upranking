@@ -53,6 +53,13 @@ test('overrides rkqheks1 message and move-in fee without changing the name', () 
   assert.equal(result.moveInFee, '입주비 동의합니다!!');
 });
 
+test('overrides rlarlgus94 message and move-in fee without changing the name', () => {
+  const result = overrides.applyDetailOverride(payload('rlarlgus94', { name: '냥쿠미' }));
+  assert.equal(result.name, '냥쿠미');
+  assert.equal(result.message, '안녕하십니까. 그냥서버2 최장접속자 냥쿠미임미다..!!!! 이번에도 질펀하게 즐기겠읍니다!! 졸업 딱 대!');
+  assert.equal(result.moveInFee, '입주비 동의');
+});
+
 test('does not alter unrelated applicants', () => {
   const original = payload('someone_else');
   assert.equal(overrides.applyDetailOverride(original), original);
