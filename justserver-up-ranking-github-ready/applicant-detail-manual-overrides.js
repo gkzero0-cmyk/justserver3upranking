@@ -11,6 +11,7 @@
     whdgns2569: Object.freeze({ name: '월야령' }),
     dd0705: Object.freeze({ name: '디또띠' }),
     mat981: Object.freeze({ name: '갱소리' }),
+    naranggu99: Object.freeze({ name: '사일' }),
     fldkaldhs123: Object.freeze({
       name: '종겜추',
       message: '전설로만 내려오던 그냥서버를 제 두 눈으로 보게 될 줄은 정말 몰랐습니다\n마크서버 한 번도 안 해봤는데 좋은 기회에 꼭 한 번 해보고 싶습니다!!\n이 한 몸 불태워서 그냥서버에서 회광반조 하겠습니다!'
