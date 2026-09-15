@@ -13,6 +13,10 @@
     mat981: Object.freeze({ name: '갱소리' }),
     naranggu99: Object.freeze({ name: '사일' }),
     jyd0808: Object.freeze({ name: '놈삐' }),
+    leesanggo: Object.freeze({
+      message: '휴가 와있는데 물ㄹ속에서 방수팩으로 급ㅂ하게 쓰고 있습니다ㅏ 이번에도 컨텐츠 ㅇ열어주심에 감사하며 잘 즐겨보겠습니다!!🔥',
+      moveInFee: '입주비 동의!!'
+    }),
     nmoohae1205: Object.freeze({
       name: '무해_',
       message: '마크 간절하고간절하게 너무너무너무하고싶습니다!!!!!!! 즐찾수도 ㅠㅠ 너무감사드립니다 충분히 높게받으실수도이쓴데 이런 기회주셔서 너무감사드립니다!!!! 복 많이 받으세요!!!',
