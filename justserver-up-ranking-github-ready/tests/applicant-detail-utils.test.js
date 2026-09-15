@@ -108,3 +108,14 @@ test('reads the real nested SOOP station favorite count, profile image and prese
   assert.equal(detail.photoUrl, 'https://stimg.sooplive.co.kr/COMMENT/3/application.png');
   assert.equal(detail.originalComment, originalComment);
 });
+
+test('uses the verified display name for gus9107 applicant detail', () => {
+  const raw = {
+    p_comment_no: 122000001,
+    user_id: 'gus9107',
+    user_nick: '유다한',
+    comment: '별 / 368명 / 잘 부탁드립니다 / 입주비 동의합니다'
+  };
+  const detail = formatApplicationDetail(raw, { station: { upd: { fan_cnt: 364 }, user_nick: '유다한' } });
+  assert.equal(detail.name, '유다한');
+});
