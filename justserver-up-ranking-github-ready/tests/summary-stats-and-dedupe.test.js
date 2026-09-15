@@ -14,6 +14,7 @@ test('excludes the confirmed Moon Haena duplicate comments and preserves the res
   assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119806205', userId: 'haena419' }), true);
   assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '120017217', userId: 'haena419' }), false);
   assert.equal(commentsHandler.EXCLUDED_COMMENT_NOS.size, 2);
+  assert.equal(stats.EXCLUDED_DUPLICATE_COUNT, 2);
 });
 
 test('counts unique SOOP applicants while excluding CHZZK applicants', () => {
