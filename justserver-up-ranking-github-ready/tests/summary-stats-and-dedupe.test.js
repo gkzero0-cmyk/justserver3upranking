@@ -9,14 +9,14 @@ const commentsHandler = require('../api/comments.js');
 const statsSource = fs.readFileSync(path.join(__dirname, '..', 'stats-summary-hotfix.js'), 'utf8');
 const loaderSource = fs.readFileSync(path.join(__dirname, '..', 'ranking-utils.js'), 'utf8');
 
-test('excludes the confirmed Moon Haena duplicate comments and preserves the restored original', () => {
-  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119797205', userId: 'haena419' }), true);
+test('excludes only the confirmed Moon Haena duplicate and preserves the other comments', () => {
+  assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119797205', userId: 'haena419' }), false);
   assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '119806205', userId: 'haena419' }), true);
   assert.equal(commentsHandler.shouldExcludeComment({ commentNo: '120017217', userId: 'haena419' }), false);
-  assert.equal(commentsHandler.EXCLUDED_COMMENT_NOS.size, 2);
+  assert.equal(commentsHandler.EXCLUDED_COMMENT_NOS.size, 1);
 });
 
-test('shows the requested duplicate note text independently of the API exclusion count', () => {
+test('shows the requested duplicate note text', () => {
   assert.equal(stats.EXCLUDED_DUPLICATE_COUNT, 1);
 });
 
