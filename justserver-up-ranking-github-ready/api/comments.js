@@ -5,10 +5,21 @@ const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID
 const POST_URL = `https://www.sooplive.com/station/${CHANNEL_ID}/post/${POST_ID}`;
 
 const CACHE_MS = 850;
+const STALE_MS = 10 * 1000;
 const EXCLUDED_COMMENT_NOS = new Set(['119806205']);
 let cachedPayload = null;
 let cachedAt = 0;
 let inflight = null;
+
+function cacheMode(cachedAtValue, nowValue = Date.now()) {
+  const cachedAtNumber = Number(cachedAtValue);
+  const nowNumber = Number(nowValue);
+  if (!Number.isFinite(cachedAtNumber) || cachedAtNumber <= 0 || !Number.isFinite(nowNumber)) return 'miss';
+  const age = Math.max(0, nowNumber - cachedAtNumber);
+  if (age < CACHE_MS) return 'fresh';
+  if (age < STALE_MS) return 'stale';
+  return 'expired';
+}
 
 function toNumber(value) {
   if (value == null || value === '') return null;
@@ -164,24 +175,33 @@ async function buildPayload() {
   return { payload, raw };
 }
 
+function startRefresh() {
+  if (!inflight) {
+    inflight = buildPayload().then(built => {
+      cachedPayload = built.payload;
+      cachedAt = Date.now();
+      return built;
+    }).finally(() => { inflight = null; });
+  }
+  return inflight;
+}
+
 async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   try {
     const now = Date.now();
+    const mode = cachedPayload ? cacheMode(cachedAt, now) : 'miss';
     let result;
-    if (cachedPayload && now - cachedAt < CACHE_MS) {
+
+    if (mode === 'fresh') {
+      result = { payload: cachedPayload, raw: [] };
+    } else if (mode === 'stale') {
+      startRefresh().catch(() => {});
       result = { payload: cachedPayload, raw: [] };
     } else {
-      if (!inflight) {
-        inflight = buildPayload().then(built => {
-          cachedPayload = built.payload;
-          cachedAt = Date.now();
-          return built;
-        }).finally(() => { inflight = null; });
-      }
-      result = await inflight;
+      result = await startRefresh();
     }
 
     const payload = { ...result.payload };
@@ -201,6 +221,9 @@ async function handler(req, res) {
   }
 }
 
+handler.CACHE_MS = CACHE_MS;
+handler.STALE_MS = STALE_MS;
+handler.cacheMode = cacheMode;
 handler.EXCLUDED_COMMENT_NOS = EXCLUDED_COMMENT_NOS;
 handler.shouldExcludeComment = shouldExcludeComment;
 handler.normalize = normalize;

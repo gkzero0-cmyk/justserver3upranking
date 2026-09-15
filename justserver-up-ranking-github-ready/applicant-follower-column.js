@@ -5,6 +5,7 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const CHZZK_REFRESH_MS = 5 * 60 * 1000;
   const CHZZK_CONCURRENCY = 4;
+  const TBODY_OBSERVER_OPTIONS = Object.freeze({ childList: true });
 
   function toCount(value) {
     if (value === null || value === undefined || value === '') return null;
@@ -28,6 +29,14 @@
       lines.push({ platform: '치지직', text: count === null ? '-' : formatCount(count), status: count === null ? 'missing' : 'ready' });
     }
     return lines;
+  }
+
+  function followerLinesSignature(lines) {
+    return (lines || []).map(line => `${line.platform}|${line.text}|${line.status || ''}`).join('\u001f');
+  }
+
+  function needsFollowerRender(previousSignature, lines) {
+    return String(previousSignature || '') !== followerLinesSignature(lines);
   }
 
   function buildChzzkLookup(item, detailUtils) {
@@ -161,10 +170,12 @@
           chzzkCount: chzzkState?.count,
           chzzkStatus: chzzkState?.status || (lookup.isChzzk ? 'loading' : '')
         });
+        if (!needsFollowerRender(cell.dataset.followerSignature, lines)) continue;
         const stack = doc.createElement('div');
         stack.className = 'follower-stack';
         lines.forEach(line => stack.appendChild(makeLine(line)));
         cell.replaceChildren(stack);
+        cell.dataset.followerSignature = followerLinesSignature(lines);
       }
     }
 
@@ -255,7 +266,7 @@
     };
 
     const tbody = doc.getElementById('tbody');
-    if (tbody && win.MutationObserver) new win.MutationObserver(scheduleRender).observe(tbody, { childList: true, subtree: true });
+    if (tbody && win.MutationObserver) new win.MutationObserver(scheduleRender).observe(tbody, TBODY_OBSERVER_OPTIONS);
     ensureStyle();
     ensureHeaderAndColspans();
     if (soopCounts.size) publishSoopCounts();
@@ -265,9 +276,12 @@
   return {
     CHZZK_REFRESH_MS,
     CHZZK_CONCURRENCY,
+    TBODY_OBSERVER_OPTIONS,
     toCount,
     formatCount,
     buildFollowerLines,
+    followerLinesSignature,
+    needsFollowerRender,
     buildChzzkLookup,
     mergeSoopCountPayload,
     detailKey,
