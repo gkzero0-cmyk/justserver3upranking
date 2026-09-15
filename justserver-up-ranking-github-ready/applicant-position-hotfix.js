@@ -128,7 +128,8 @@
         wrap.appendChild(value);
       }
       const upRank = normalizeUpRank(row.dataset.rank);
-      value.textContent = upRank ? `${upRank}위` : '-';
+      const upRankText = upRank ? `${upRank}위` : '-';
+      if (value.textContent !== upRankText) value.textContent = upRankText;
       if (existingChange) wrap.appendChild(existingChange);
 
       let badge = left.querySelector('.display-order-badge');
@@ -153,14 +154,16 @@
         orderBadge.className = 'detail-list-order';
         title.insertBefore(orderBadge, title.firstChild);
       }
-      orderBadge.textContent = formatDisplayOrder(order);
+      const orderText = formatDisplayOrder(order);
+      if (orderBadge.textContent !== orderText) orderBadge.textContent = orderText;
 
       let upBadge = title.querySelector('.detail-up-rank');
       if (!upBadge) {
         upBadge = doc.createElement('span');
         upBadge.className = 'detail-up-rank';
       }
-      upBadge.textContent = formatUpRank(upRank);
+      const upText = formatUpRank(upRank);
+      if (upBadge.textContent !== upText) upBadge.textContent = upText;
       const freepass = title.querySelector('.detail-freepass-badge');
       if (freepass) title.insertBefore(upBadge, freepass);
       else if (!upBadge.isConnected) title.appendChild(upBadge);
@@ -179,7 +182,10 @@
         if (order) item.row.dataset.displayOrder = String(order);
         else delete item.row.dataset.displayOrder;
         const badge = item.row.querySelector('.display-order-badge');
-        if (badge) badge.textContent = order ? String(order) : '';
+        if (badge) {
+          const orderText = order ? String(order) : '';
+          if (badge.textContent !== orderText) badge.textContent = orderText;
+        }
       }
       if (columnCount) {
         for (const cell of doc.querySelectorAll('#tbody tr:not([data-rank]) td[colspan]')) {
