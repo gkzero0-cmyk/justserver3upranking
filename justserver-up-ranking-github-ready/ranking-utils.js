@@ -12,6 +12,7 @@
   const freepassUrl = new URL('./freepass-filter.js', source).href;
   const fixUrl = new URL('./live-soop-filter-fix.js', source).href;
   const summaryStatsUrl = new URL('./stats-summary-hotfix.js', source).href;
+  const detailSpeedHotfixUrl = new URL('./applicant-detail-speed-hotfix.js', source).href;
   const detailHotfixUrl = new URL('./applicant-detail-navigation-hotfix.js', source).href;
   const detailV2ClientUrl = new URL('./applicant-detail-v2-client.js', source).href;
   const detailManualOverridesUrl = new URL('./applicant-detail-manual-overrides.js', source).href;
@@ -28,6 +29,7 @@
   document.write(`<script src="${freepassUrl}"><\/script>`);
   document.write(`<script src="${fixUrl}"><\/script>`);
   document.write(`<script src="${summaryStatsUrl}"><\/script>`);
+  document.write(`<script src="${detailSpeedHotfixUrl}"><\/script>`);
   document.write(`<script src="${detailHotfixUrl}"><\/script>`);
   document.write(`<script src="${detailV2ClientUrl}"><\/script>`);
   document.write(`<script src="${detailManualOverridesUrl}"><\/script>`);
