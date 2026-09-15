@@ -13,6 +13,7 @@
   const summaryStatsUrl = new URL('./stats-summary-hotfix.js', source).href;
   const detailHotfixUrl = new URL('./applicant-detail-navigation-hotfix.js', source).href;
   const detailV2ClientUrl = new URL('./applicant-detail-v2-client.js', source).href;
+  const detailManualOverridesUrl = new URL('./applicant-detail-manual-overrides.js', source).href;
   const detailContentHotfixUrl = new URL('./applicant-detail-content-hotfix.js', source).href;
   const chzzkStatsHotfixUrl = new URL('./chzzk-detail-stats-hotfix.js', source).href;
   document.write(`<script src="${baseUrl}"><\/script>`);
@@ -26,6 +27,7 @@
   document.write(`<script src="${summaryStatsUrl}"><\/script>`);
   document.write(`<script src="${detailHotfixUrl}"><\/script>`);
   document.write(`<script src="${detailV2ClientUrl}"><\/script>`);
+  document.write(`<script src="${detailManualOverridesUrl}"><\/script>`);
   document.write(`<script src="${detailContentHotfixUrl}"><\/script>`);
   document.write(`<script src="${chzzkStatsHotfixUrl}"><\/script>`);
 })();
