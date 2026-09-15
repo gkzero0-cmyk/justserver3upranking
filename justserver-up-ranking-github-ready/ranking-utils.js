@@ -3,6 +3,7 @@
   const current = document.currentScript;
   const source = current?.src || location.href;
   const baseUrl = new URL('./ranking-utils-base.js', source).href;
+  const incrementalRenderUrl = new URL('./incremental-tbody-render-hotfix.js', source).href;
   const verifiedChzzkUrl = new URL('./flowercrab-chzzk-hotfix.js', source).href;
   const detailUtilsUrl = new URL('./applicant-detail-utils.js', source).href;
   const followerColumnUrl = new URL('./applicant-follower-column.js', source).href;
@@ -18,6 +19,7 @@
   const chzzkStatsHotfixUrl = new URL('./chzzk-detail-stats-hotfix.js', source).href;
   const applicantPositionHotfixUrl = new URL('./applicant-position-hotfix.js', source).href;
   document.write(`<script src="${baseUrl}"><\/script>`);
+  document.write(`<script src="${incrementalRenderUrl}"><\/script>`);
   document.write(`<script src="${verifiedChzzkUrl}"><\/script>`);
   document.write(`<script src="${detailUtilsUrl}"><\/script>`);
   document.write(`<script src="${followerColumnUrl}"><\/script>`);
