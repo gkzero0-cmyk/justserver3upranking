@@ -121,27 +121,42 @@
     return input;
   }
 
+  function firstNonEmptyLine(value) {
+    return String(value ?? '')
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .find(Boolean) || '';
+  }
+
   function sanitizeDetailPayload(payload) {
     if (!payload || typeof payload !== 'object' || !payload.ok) return payload;
+
+    let sanitized = payload;
+    const originalMoveInFee = String(payload.moveInFee || '').trim();
+    const moveInFee = firstNonEmptyLine(originalMoveInFee);
+    if (moveInFee && moveInFee !== originalMoveInFee) {
+      sanitized = { ...sanitized, moveInFee };
+    }
+
     const originalName = String(payload.name || '').replace(/\p{Cf}/gu, '').trim();
-    if (!originalName) return payload;
+    if (!originalName) return sanitized;
     const originalComment = String(payload.originalComment || '');
     const isChzzk = Boolean(
       String(payload.chzzkStationUrl || '').trim() ||
       /치지직|chzzk|옆동네|chzzk\.naver\.com/iu.test(originalComment)
     );
-    if (!isChzzk) return payload;
+    if (!isChzzk) return sanitized;
 
     let markerIndex = originalName.indexOf('>');
     for (const marker of ['＞', '≫', '›', '»', '→', '➡', '➜', '➤']) {
       const index = originalName.indexOf(marker);
       if (index > 0 && (markerIndex <= 0 || index < markerIndex)) markerIndex = index;
     }
-    if (markerIndex <= 0) return payload;
+    if (markerIndex <= 0) return sanitized;
 
     const cleaned = originalName.slice(0, markerIndex).trim();
-    if (!cleaned || cleaned === originalName) return payload;
-    return { ...payload, name: cleaned };
+    if (!cleaned || cleaned === originalName) return sanitized;
+    return { ...sanitized, name: cleaned };
   }
 
   async function sanitizeDetailResponse(win, response) {
@@ -211,6 +226,7 @@
     fetchDetailWithTimeout,
     toV2Url,
     rewriteInput,
+    firstNonEmptyLine,
     sanitizeDetailPayload,
     sanitizeDetailResponse,
     install
