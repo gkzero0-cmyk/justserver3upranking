@@ -16,6 +16,7 @@
   const detailManualOverridesUrl = new URL('./applicant-detail-manual-overrides.js', source).href;
   const detailContentHotfixUrl = new URL('./applicant-detail-content-hotfix.js', source).href;
   const chzzkStatsHotfixUrl = new URL('./chzzk-detail-stats-hotfix.js', source).href;
+  const applicantPositionHotfixUrl = new URL('./applicant-position-hotfix.js', source).href;
   document.write(`<script src="${baseUrl}"><\/script>`);
   document.write(`<script src="${verifiedChzzkUrl}"><\/script>`);
   document.write(`<script src="${detailUtilsUrl}"><\/script>`);
@@ -30,4 +31,5 @@
   document.write(`<script src="${detailManualOverridesUrl}"><\/script>`);
   document.write(`<script src="${detailContentHotfixUrl}"><\/script>`);
   document.write(`<script src="${chzzkStatsHotfixUrl}"><\/script>`);
+  document.write(`<script src="${applicantPositionHotfixUrl}"><\/script>`);
 })();
