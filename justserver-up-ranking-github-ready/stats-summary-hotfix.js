@@ -6,7 +6,7 @@
     if (root.document && typeof root.fetch === 'function') api.install(root);
   }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  const EXCLUDED_DUPLICATE_COUNT = 2;
+  const EXCLUDED_DUPLICATE_COUNT = 1;
 
   function applicantKey(item, utils) {
     const userId = String(item?.userId ?? item?.user_id ?? '').trim().toLowerCase();
