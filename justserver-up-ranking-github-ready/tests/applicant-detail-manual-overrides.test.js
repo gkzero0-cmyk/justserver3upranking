@@ -16,6 +16,15 @@ test('keeps approved manual display-name overrides', () => {
   assert.equal(overrides.getOverride('mat981').name, '갱소리');
   assert.equal(overrides.getOverride('naranggu99').name, '사일');
   assert.equal(overrides.getOverride('jyd0808').name, '놈삐');
+  assert.equal(overrides.getOverride('wlgodjssl').name, '토다기');
+  assert.equal(overrides.getOverride('nunknown314').name, '미현영♡');
+});
+
+test('overrides nunknown314 display name exactly', () => {
+  const result = overrides.applyDetailOverride(payload('nunknown314', { name: '신청양식 : 미현영♡' }));
+  assert.equal(result.name, '미현영♡');
+  assert.equal(result.message, '원본 메시지');
+  assert.equal(result.moveInFee, '원본 동의');
 });
 
 test('overrides 종겜추 name and requested message only', () => {
