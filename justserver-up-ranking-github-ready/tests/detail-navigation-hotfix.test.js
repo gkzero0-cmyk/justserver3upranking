@@ -53,3 +53,15 @@ test('hidden rows are excluded from previous and next navigation', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'applicant-detail-navigation-hotfix.js'), 'utf8');
   assert.match(source, /if \(!api\.isVisibleRow\(row\)\) return;/);
 });
+
+test('previous and next labels use the same applicant display-name override as detail pages', () => {
+  assert.ok(navigation, 'navigation hotfix module must exist');
+  assert.equal(typeof navigation.resolveDisplayName, 'function');
+  const detailUtils = {
+    resolveDetailNameOverride(userId) {
+      return String(userId).toLowerCase() === 'whdgns2569' ? '월야령' : '';
+    }
+  };
+  assert.equal(navigation.resolveDisplayName('야령과야현', 'whdgns2569', detailUtils), '월야령');
+  assert.equal(navigation.resolveDisplayName('모바샤', 'other', detailUtils), '모바샤');
+});
