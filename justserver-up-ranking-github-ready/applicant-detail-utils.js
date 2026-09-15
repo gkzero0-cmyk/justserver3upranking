@@ -4,7 +4,8 @@
   if (root) root.ApplicantDetailUtils = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const DETAIL_NAME_OVERRIDES = Object.freeze({
-    gus9107: '유다한'
+    gus9107: '유다한',
+    whdgns2569: '월야령'
   });
 
   function cleanText(value) {
