@@ -40,3 +40,14 @@ test('detail timeout rejects with a non-AbortError so the modal can replace its 
     error => error && error.name === 'DetailTimeoutError' && /시간이 초과/.test(error.message)
   );
 });
+
+test('sanitizes move-in fee to the first non-empty line for SOOP applicant detail', () => {
+  const payload = {
+    ok: true,
+    name: '송시온',
+    moveInFee: '매우 동의합니다!!\n안녕하세요!\n감사하게도 500명 안돼도 일단 신청은 해보라고 해주셔서 슬쩍 넣어봅니다.',
+    originalComment: '송시온 즐찾 수 : 335\n입주비 동의 여부: 매우 동의합니다!!'
+  };
+  const sanitized = client.sanitizeDetailPayload(payload);
+  assert.equal(sanitized.moveInFee, '매우 동의합니다!!');
+});
