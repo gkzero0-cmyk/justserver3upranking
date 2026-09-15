@@ -68,6 +68,13 @@
     return next;
   }
 
+  function isFreepassDetail(detail) {
+    if (!detail || typeof detail !== 'object') return false;
+    const userId = detail.userId ?? detail.user_id;
+    const comment = detail.originalComment ?? detail.comment ?? detail.applicationComment;
+    return isPinnedFreepassUser(userId) || isFreepassUseComment(comment);
+  }
+
   function placeFreepassStatCard(stats, card) {
     if (!stats || !card) return;
     const autoRefreshCard = Array.from(stats.children || []).find(child =>
@@ -87,6 +94,7 @@
     const nativeFetch = win.fetch.bind(win);
     let freepassKeys = new Set();
     let filterActive = false;
+    let detailFreepass = false;
     let applyQueued = false;
 
     function ensureStyle() {
@@ -97,6 +105,7 @@
         .freepass-filter-btn{height:34px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#8390a5;font-size:12px;font-weight:850;cursor:pointer;white-space:nowrap}
         .freepass-filter-btn:hover{color:#eadcff;background:#1d1728}.freepass-filter-btn.active{background:#3b245d;color:#eadcff;box-shadow:inset 0 0 0 1px #7046a7}
         .freepass-badge{display:inline-flex;align-items:center;height:21px;padding:0 7px;border-radius:999px;border:1px solid #69459a;background:#2b1c42;color:#d9bfff;font-size:9px;font-weight:900;white-space:nowrap;flex:0 0 auto}
+        .detail-title .detail-freepass-badge{margin-left:9px;vertical-align:middle;transform:translateY(-2px)}
         #tbody.freepass-filter-active tr[data-rank]:not([data-freepass="1"]){display:none!important}
       `;
       (doc.head || doc.documentElement).appendChild(style);
@@ -159,6 +168,22 @@
       }
     }
 
+    function syncDetailBadge() {
+      const title = doc.querySelector('#applicantDetailTitle');
+      if (!title) return;
+      let badge = title.querySelector('.detail-freepass-badge');
+      const matched = detailFreepass;
+      if (matched && !badge) {
+        badge = doc.createElement('span');
+        badge.className = 'freepass-badge detail-freepass-badge';
+        badge.textContent = '프리패스';
+        badge.title = '프리패스 대상 신청자입니다.';
+        title.appendChild(badge);
+      } else if (!matched && badge) {
+        badge.remove();
+      }
+    }
+
     function apply() {
       applyQueued = false;
       ensureStyle();
@@ -170,6 +195,7 @@
         button.classList.toggle('active', filterActive);
         button.setAttribute('aria-pressed', filterActive ? 'true' : 'false');
       }
+      syncDetailBadge();
       const tbody = doc.getElementById('tbody');
       if (!tbody) return;
       tbody.classList.toggle('freepass-filter-active', filterActive);
@@ -196,6 +222,12 @@
           response.clone().json().then(data => {
             if (Array.isArray(data?.comments)) updateComments(data.comments);
           }).catch(() => {});
+        } else if (/\/api\/applicant-detail(?:-v2)?(?:\?|#|$)/.test(String(rawUrl))) {
+          response.clone().json().then(data => {
+            if (!data?.ok) return;
+            detailFreepass = isFreepassDetail(data);
+            scheduleApply();
+          }).catch(() => {});
         }
       } catch {}
       return response;
@@ -203,6 +235,8 @@
 
     const tbody = doc.getElementById('tbody');
     if (tbody && win.MutationObserver) new win.MutationObserver(scheduleApply).observe(tbody, { childList: true, subtree: true });
+    const detailBody = doc.getElementById('applicantDetailBody');
+    if (detailBody && win.MutationObserver) new win.MutationObserver(scheduleApply).observe(detailBody, { childList: true, subtree: true });
     ensureStyle();
     ensureStat();
     ensureFilterButton();
@@ -218,6 +252,7 @@
     isFreepassUseComment,
     freepassKey,
     collectFreepassKeys,
+    isFreepassDetail,
     placeFreepassStatCard,
     install
   };
