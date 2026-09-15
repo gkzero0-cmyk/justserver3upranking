@@ -119,3 +119,14 @@ test('uses the verified display name for gus9107 applicant detail', () => {
   const detail = formatApplicationDetail(raw, { station: { upd: { fan_cnt: 364 }, user_nick: '유다한' } });
   assert.equal(detail.name, '유다한');
 });
+
+test('uses the verified display name for whdgns2569 applicant detail', () => {
+  const raw = {
+    p_comment_no: 122000002,
+    user_id: 'whdgns2569',
+    user_nick: '월야령',
+    comment: '야령과야현 / 449명 / 안녕하세요! / 입주비 동의합니다'
+  };
+  const detail = formatApplicationDetail(raw, { station: { upd: { fan_cnt: 449 }, user_nick: '월야령' } });
+  assert.equal(detail.name, '월야령');
+});
