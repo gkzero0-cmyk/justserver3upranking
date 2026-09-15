@@ -3,8 +3,16 @@
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.ApplicantDetailUtils = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  const DETAIL_NAME_OVERRIDES = Object.freeze({
+    gus9107: '유다한'
+  });
+
   function cleanText(value) {
     return String(value ?? '').replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+  }
+
+  function resolveDetailNameOverride(userId) {
+    return DETAIL_NAME_OVERRIDES[cleanText(userId).toLowerCase()] || '';
   }
 
   function stripDecoration(value) {
@@ -271,7 +279,8 @@
         : declaredFanCount !== null
           ? 'application'
           : 'unknown';
-    const resolvedName = parsed.name || stationNick || userNick || userId || '정보 없음';
+    const overrideName = resolveDetailNameOverride(userId);
+    const resolvedName = overrideName || parsed.name || stationNick || userNick || userId || '정보 없음';
     const finalName = chzzkApplication ? (stripChzzkTag(resolvedName) || resolvedName) : resolvedName;
 
     return {
@@ -291,6 +300,8 @@
   }
 
   return {
+    DETAIL_NAME_OVERRIDES,
+    resolveDetailNameOverride,
     parseApplicationComment,
     normalizePhotoUrl,
     normalizeFanCount,
