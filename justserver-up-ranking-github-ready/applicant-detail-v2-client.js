@@ -128,21 +128,39 @@
       .find(Boolean) || '';
   }
 
+  function recoverRoziDetail(payload) {
+    const originalComment = String(payload?.originalComment || '');
+    const lines = originalComment.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (lines.length < 2 || !/^로지\s*Rozi\s*\/\s*1,?078\s*명?$/iu.test(lines[0])) return payload;
+
+    const feeLine = lines.find(line => /^입주비\s*동의\s*합니다[.!！]*$/u.test(line)) || '';
+    const requestedMessage = lines.slice(0, 2).join('\n');
+    const currentMessage = String(payload?.message || '').trim();
+    const currentFee = String(payload?.moveInFee || '').trim();
+
+    if (currentMessage === requestedMessage && (!feeLine || currentFee === feeLine)) return payload;
+    return {
+      ...payload,
+      message: requestedMessage,
+      moveInFee: feeLine || currentFee
+    };
+  }
+
   function sanitizeDetailPayload(payload) {
     if (!payload || typeof payload !== 'object' || !payload.ok) return payload;
 
-    let sanitized = payload;
-    const originalMoveInFee = String(payload.moveInFee || '').trim();
+    let sanitized = recoverRoziDetail(payload);
+    const originalMoveInFee = String(sanitized.moveInFee || '').trim();
     const moveInFee = firstNonEmptyLine(originalMoveInFee);
     if (moveInFee && moveInFee !== originalMoveInFee) {
       sanitized = { ...sanitized, moveInFee };
     }
 
-    const originalName = String(payload.name || '').replace(/\p{Cf}/gu, '').trim();
+    const originalName = String(sanitized.name || '').replace(/\p{Cf}/gu, '').trim();
     if (!originalName) return sanitized;
-    const originalComment = String(payload.originalComment || '');
+    const originalComment = String(sanitized.originalComment || '');
     const isChzzk = Boolean(
-      String(payload.chzzkStationUrl || '').trim() ||
+      String(sanitized.chzzkStationUrl || '').trim() ||
       /치지직|chzzk|옆동네|chzzk\.naver\.com/iu.test(originalComment)
     );
     if (!isChzzk) return sanitized;
@@ -227,6 +245,7 @@
     toV2Url,
     rewriteInput,
     firstNonEmptyLine,
+    recoverRoziDetail,
     sanitizeDetailPayload,
     sanitizeDetailResponse,
     install
