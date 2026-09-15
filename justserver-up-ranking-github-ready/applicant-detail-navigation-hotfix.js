@@ -25,7 +25,14 @@
     return nextIndex >= 0 && nextIndex < list.length ? list[nextIndex] : null;
   }
 
-  return { detailKey, isVisibleRow, findNeighbor };
+  function resolveDisplayName(name, userId, detailUtils) {
+    const override = typeof detailUtils?.resolveDetailNameOverride === 'function'
+      ? String(detailUtils.resolveDetailNameOverride(userId) || '').trim()
+      : '';
+    return override || String(name || userId || '신청자').trim();
+  }
+
+  return { detailKey, isVisibleRow, findNeighbor, resolveDisplayName };
 });
 
 (() => {
@@ -53,10 +60,11 @@
     const userId = String(trigger.dataset.detailUser || '').trim();
     const key = api.detailKey(commentNo, userId);
     if (!key) return null;
-    const name = String(row.querySelector('.nick')?.textContent || userId || '신청자').trim();
+    const rawName = String(row.querySelector('.nick')?.textContent || userId || '신청자').trim();
+    const name = api.resolveDisplayName(rawName, userId, window.ApplicantDetailUtils);
     const cached = state.commentDetails.get(key) || null;
     const applicationComment = String(cached?.comment || row.querySelector('.detail-comment-trigger')?.textContent || '').trim();
-    const userNick = String(cached?.userNick || name).trim();
+    const userNick = api.resolveDisplayName(String(cached?.userNick || rawName).trim(), userId, window.ApplicantDetailUtils);
     const photoUrl = String(cached?.photoUrl || '').trim();
     return { key, name, userNick, commentNo, userId, applicationComment, photoUrl, trigger };
   }
