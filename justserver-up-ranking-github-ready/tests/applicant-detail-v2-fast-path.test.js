@@ -51,3 +51,25 @@ test('sanitizes move-in fee to the first non-empty line for SOOP applicant detai
   const sanitized = client.sanitizeDetailPayload(payload);
   assert.equal(sanitized.moveInFee, '매우 동의합니다!!');
 });
+
+test('fills Rozi message and move-in fee from the original multiline application comment', () => {
+  const payload = {
+    ok: true,
+    name: '로지Rozi',
+    message: '',
+    moveInFee: '',
+    originalComment: [
+      '로지Rozi / 1078명',
+      '춘봉런 퍼클 하려고 열심히 했었는데 이번에도 열심히 달려볼게요!!',
+      '안녕하세요 그냥서버 신청 너무 받고싶어서 신청합니다',
+      '저번 머니게임 신청을 늦게 받아서....',
+      '입주비 동의 합니다'
+    ].join('\n')
+  };
+  const sanitized = client.sanitizeDetailPayload(payload);
+  assert.equal(
+    sanitized.message,
+    '로지Rozi / 1078명\n춘봉런 퍼클 하려고 열심히 했었는데 이번에도 열심히 달려볼게요!!'
+  );
+  assert.equal(sanitized.moveInFee, '입주비 동의 합니다');
+});
