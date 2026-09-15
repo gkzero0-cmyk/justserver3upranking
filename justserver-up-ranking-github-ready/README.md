@@ -7,5 +7,3 @@ Vercel 배포용 폴더입니다.
 - `api/history.js` : 24시간 순위 변동 상태 API
 - `api/chzzk-channel.js` : 치지직 채널 정보 조회 API
 - `ranking-utils.js` : 브라우저용 보조 기능 로더
-
-> source bundle updated in main; production deployment follows the latest commit status.
