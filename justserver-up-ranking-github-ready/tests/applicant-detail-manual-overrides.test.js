@@ -13,6 +13,7 @@ test('keeps approved manual display-name overrides', () => {
   assert.equal(overrides.getOverride('gus9107').name, '유다한');
   assert.equal(overrides.getOverride('whdgns2569').name, '월야령');
   assert.equal(overrides.getOverride('dd0705').name, '디또띠');
+  assert.equal(overrides.getOverride('mat981').name, '갱소리');
 });
 
 test('overrides 종겜추 name and requested message only', () => {
