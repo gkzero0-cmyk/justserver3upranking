@@ -12,6 +12,11 @@
     dd0705: Object.freeze({ name: '디또띠' }),
     mat981: Object.freeze({ name: '갱소리' }),
     naranggu99: Object.freeze({ name: '사일' }),
+    nmoohae1205: Object.freeze({
+      name: '무해_',
+      message: '마크 간절하고간절하게 너무너무너무하고싶습니다!!!!!!! 즐찾수도 ㅠㅠ 너무감사드립니다 충분히 높게받으실수도이쓴데 이런 기회주셔서 너무감사드립니다!!!! 복 많이 받으세요!!!',
+      moveInFee: '입주비 동의합니다!'
+    }),
     fldkaldhs123: Object.freeze({
       name: '종겜추',
       message: '전설로만 내려오던 그냥서버를 제 두 눈으로 보게 될 줄은 정말 몰랐습니다\n마크서버 한 번도 안 해봤는데 좋은 기회에 꼭 한 번 해보고 싶습니다!!\n이 한 몸 불태워서 그냥서버에서 회광반조 하겠습니다!'
