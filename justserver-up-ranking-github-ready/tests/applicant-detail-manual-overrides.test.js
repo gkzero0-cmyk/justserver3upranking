@@ -31,6 +31,13 @@ test('overrides 나린인데? name, message and move-in fee exactly', () => {
   assert.equal(result.moveInFee, '동의합니다.');
 });
 
+test('overrides 무해_ name, requested message and move-in fee exactly', () => {
+  const result = overrides.applyDetailOverride(payload('nmoohae1205'));
+  assert.equal(result.name, '무해_');
+  assert.equal(result.message, '마크 간절하고간절하게 너무너무너무하고싶습니다!!!!!!! 즐찾수도 ㅠㅠ 너무감사드립니다 충분히 높게받으실수도이쓴데 이런 기회주셔서 너무감사드립니다!!!! 복 많이 받으세요!!!');
+  assert.equal(result.moveInFee, '입주비 동의합니다!');
+});
+
 test('does not alter unrelated applicants', () => {
   const original = payload('someone_else');
   assert.equal(overrides.applyDetailOverride(original), original);
