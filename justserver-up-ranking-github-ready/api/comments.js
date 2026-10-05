@@ -1,7 +1,7 @@
 const { normalizePhotoUrl } = require('../applicant-detail-utils.js');
 const CHANNEL_ID = 'chunbongtv';
 const POST_ID = '204274449';
-const SOOP_API = `https://chapi.sooplive.co.kr/api/${CHANNEL_ID}/title/${POST_ID}/comment`;
+const SOOP_API = `https://api-channel.sooplive.com/v1.1/channel/${CHANNEL_ID}/post/${POST_ID}/comment`;
 const POST_URL = `https://www.sooplive.com/station/${CHANNEL_ID}/post/${POST_ID}`;
 
 const CACHE_MS = 850;
@@ -89,7 +89,7 @@ function normalize(raw) {
     'reg_date','regDate','created_at','createdAt','write_date','writeDate','date'
   ]) || '').trim();
   const commentNo = String(pick(raw, [
-    'p_comment_no','comment_no','commentNo','comment_id','commentId','no','id'
+    'p_comment_no','pCommentNo','comment_no','commentNo','comment_id','commentId','no','id'
   ]) || '').trim();
   const explicitCommentUrl = String(pick(raw, [
     'comment_url','commentUrl','link_url','linkUrl','url'
@@ -116,7 +116,8 @@ function shouldExcludeComment(item) {
 async function fetchPage(page, orderby = 'reg_date') {
   const url = new URL(SOOP_API);
   url.searchParams.set('page', String(page));
-  url.searchParams.set('orderby', orderby);
+  url.searchParams.set('orderBy', orderby);
+  url.searchParams.set('perPage', '30');
 
   const res = await fetch(url, {
     headers: {
@@ -139,7 +140,7 @@ async function fetchPage(page, orderby = 'reg_date') {
 async function buildPayload() {
   const first = await fetchPage(1);
   const firstData = Array.isArray(first?.data) ? first.data : [];
-  const lastPage = Math.max(1, Number(first?.meta?.last_page || 1));
+  const lastPage = Math.max(1, Number(first?.meta?.lastPage || first?.meta?.last_page || 1));
   const maxPages = Math.min(lastPage, 200);
 
   const restPages = [];
